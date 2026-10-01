@@ -43,7 +43,7 @@
   },
   "memory": {
     "lane": {
-      "enabled": false
+      "enabled": true
     },
     "backend": "plainfiles"
   },

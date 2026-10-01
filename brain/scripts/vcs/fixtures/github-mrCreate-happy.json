@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "gh pr create --title ... --body ... --head ... --base ...",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "NOT recorded: `gh pr create` is a mutating write — actually running it would open a real pull request in the target repo as a side effect of fixture maintenance, which this recording script deliberately refuses to do (see record-fixtures.mjs header). Authored from `gh pr create`'s documented stdout contract: a bare URL string on success, matching github.mjs#mrCreate's `r.stdout.trim()` read."
+  },
+  "throws": false,
+  "stdout": "https://github.com/csrinaldi/brain/pull/999\n"
+}

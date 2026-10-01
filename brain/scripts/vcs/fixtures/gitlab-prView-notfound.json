@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests/:iid",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment (same limitation as every other gitlab-*.json fixture, CP-A3b deferred). Derived from gitlab-api.mjs:65's fixed error-message template, `GitLab API failed: ${res.status} (${path})` — the ONLY shape gitlabApiFetch ever throws, so only the status/path values are substituted here, never invented text. GitLab's REST API v4 responds 404 Not Found for a merge_requests/:iid lookup whose iid does not identify an existing merge request (documented: https://docs.gitlab.com/ee/api/merge_requests.html#get-single-mr) — the same 404 status already pinned in uncomputable-cause.test.mjs's corpus row `GitLab API failed: 404 (projects/x%2Fy/repository/commits/abc/statuses)`. Classifies `not-found` via classifyUncomputableCause's numeric `code === 404` branch (HTTP_STATUS_RE), independent of any text pattern."
+  },
+  "throws": true,
+  "status": 404,
+  "error": "GitLab API failed: 404 (projects/x%2Fy/merge_requests/978)"
+}

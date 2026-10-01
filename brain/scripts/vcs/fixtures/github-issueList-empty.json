@@ -1,0 +1,9 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/issues?state=open&per_page=100",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "A zero-open-issue repo cannot be reliably produced on demand against a live target — hand-authored to exercise github.mjs#issueList's empty-array path. tracker-board.mjs:58's myIssues.length is unguarded, so [] (never null) is the contractual requirement being pinned, mirroring github-mrList-empty.json."
+  },
+  "data": []
+}

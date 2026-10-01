@@ -1,0 +1,28 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/csrinaldi/brain/pulls?state=open&per_page=100",
+    "date": "2026-07-29",
+    "recorded": true,
+    "note": "Trimmed to the fields github.mjs#mrList actually consumes (number, title, head.ref, state, merged_at — the last two additive per #930) via a jq-equivalent projection of the real response — values are unmodified from the live API, only unused per-PR metadata is dropped to keep the fixture reviewable. Both entries were still open at record time (2026-07-29), matching the `state=open` query."
+  },
+  "data": [
+    {
+      "number": 342,
+      "title": "M10: seam-contract-coverage epic tracker",
+      "head": {
+        "ref": "feature/m10-seam-contract-coverage"
+      },
+      "state": "open",
+      "merged_at": null
+    },
+    {
+      "number": 331,
+      "title": "fix(governance): re-order release audit gate to audit-then-tag and add audit baseline",
+      "head": {
+        "ref": "fix/issue-210-fixgovernance-releaseyml-audit-gate-cann"
+      },
+      "state": "open",
+      "merged_at": null
+    }
+  ]
+}

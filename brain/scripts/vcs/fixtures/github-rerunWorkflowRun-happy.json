@@ -1,0 +1,15 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/{project}/actions/runs?branch={ref}",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "Hand-authored from the documented GitHub Actions 'List workflow runs for a repository' response shape (https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-repository), trimmed to the fields rerunWorkflowRun consumes (id, path). Three entries, API-ordered newest-first: a non-matching workflow (release.yml) at the very top, then two governance.yml runs — proves the filter-then-take-first-match logic picks the NEWEST governance.yml run (55500), skipping both the non-matching entry above it and the older governance.yml entry below it."
+  },
+  "data": {
+    "workflow_runs": [
+      { "id": 55501, "path": ".github/workflows/release.yml", "head_branch": "fix/issue-328-x" },
+      { "id": 55500, "path": ".github/workflows/governance.yml", "head_branch": "fix/issue-328-x" },
+      { "id": 55499, "path": ".github/workflows/governance.yml", "head_branch": "fix/issue-328-x" }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET /user (via glab api /user)",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "A forced non-zero exit cannot be recorded from a successful call, and no reachable live `glab` session exists in this environment (standing deferral). Hand-authored to exercise runJson's non-zero-exit throw path (exec.mjs:31-32) — whoami has no null-shape fallback, so a failed lookup must REJECT (design D3, issue #385, M10 Phase 2 final Gap-A batch)."
+  },
+  "throws": true,
+  "error": "401 Unauthorized"
+}

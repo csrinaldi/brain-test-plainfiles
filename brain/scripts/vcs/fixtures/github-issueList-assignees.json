@@ -1,0 +1,36 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/csrinaldi/brain/issues?state=open&per_page=100",
+    "date": "2026-08-11",
+    "derived": true,
+    "note": "Hand-authored for issue #533 to exercise the THREE outcomes of `normalizeAssignees`, which the existing github-issueList-happy.json cannot: that fixture was trimmed at record time and carries no assignee field on any entry, so every one of its rows is the `null` (cannot see) case. The field shape here was MEASURED against the live endpoint on 2026-08-11 (GET repos/csrinaldi/brain/issues?state=open) rather than taken from the docs: the live payload carries `assignees` as an array of user objects AND a legacy singular `assignee`, and issue #533 itself came back with assignees [{login: csrinaldi}] while #516 came back with []. Entry 901 is the populated case, 902 the read-and-genuinely-empty case, 903 the legacy singular-only case (no plural key — the shape an older GitHub Enterprise Server returns), and 904 the no-assignee-field-at-all case that must normalize to null, not [].",
+    "measured": "assignees present on every live entry; the 903/904 shapes are constructed, not observed"
+  },
+  "data": [
+    {
+      "number": 901,
+      "title": "populated",
+      "labels": [],
+      "assignees": [{ "login": "alice" }, { "login": "bob" }],
+      "assignee": { "login": "alice" }
+    },
+    {
+      "number": 902,
+      "title": "read, and nobody is assigned",
+      "labels": [],
+      "assignees": [],
+      "assignee": null
+    },
+    {
+      "number": 903,
+      "title": "legacy singular only",
+      "labels": [],
+      "assignee": { "login": "carol" }
+    },
+    {
+      "number": 904,
+      "title": "no assignee field at all — brain cannot see",
+      "labels": []
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "POST /projects/:id/merge_requests",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "Forced-failure case — hand-authored to exercise gitlab.mjs#mrCreate's catch → { url: null, error } path."
+  },
+  "throws": true,
+  "status": 409,
+  "error": "GitLab API failed: 409 (projects/g%2Fr/merge_requests)"
+}

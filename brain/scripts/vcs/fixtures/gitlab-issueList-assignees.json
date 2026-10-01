@@ -1,0 +1,35 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/issues?state=opened&per_page=100",
+    "date": "2026-08-11",
+    "derived": true,
+    "note": "Hand-authored for issue #533 — no live GitLab mirror is reachable from this environment (record-fixtures.mjs's standing constraint), so the shape comes from the documented GitLab REST API v4 issues response (https://docs.gitlab.com/ee/api/issues.html), which carries BOTH `assignees` (array of user objects) and the legacy singular `assignee`. Mirrors github-issueList-assignees.json entry for entry so the parameterized contract suite asserts ONE set of outcomes over both providers: 901 populated, 902 read-and-genuinely-empty, 903 legacy-singular-only (the shape a GitLab CE instance predating multiple assignees returns), 904 no assignee field at all — which must normalize to null, never []. GitLab's user objects key the name as `username`, GitHub's as `login`; that is the only provider-specific input to `normalizeAssignees`."
+  },
+  "data": [
+    {
+      "iid": 901,
+      "title": "populated",
+      "labels": [],
+      "assignees": [{ "username": "alice" }, { "username": "bob" }],
+      "assignee": { "username": "alice" }
+    },
+    {
+      "iid": 902,
+      "title": "read, and nobody is assigned",
+      "labels": [],
+      "assignees": [],
+      "assignee": null
+    },
+    {
+      "iid": 903,
+      "title": "legacy singular only",
+      "labels": [],
+      "assignee": { "username": "carol" }
+    },
+    {
+      "iid": 904,
+      "title": "no assignee field at all — brain cannot see",
+      "labels": []
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "gh auth status",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "A forced 'not logged in' exit cannot be recorded without logging out of the live session used to record github-authCheck-happy.json -- an unacceptable side effect for fixture maintenance. Hand-authored from gh's documented CLI contract: a not-logged-in host exits non-zero with an explanatory stderr message."
+  },
+  "status": 1,
+  "stdout": "",
+  "stderr": "You are not logged into any GitHub hosts. Run gh auth login to authenticate.\n"
+}

@@ -1,0 +1,361 @@
+# governance.yml — Workflow Governance Layer (ADR-0014)
+#
+# Enforces process invariants as PR checks — ten jobs as of #905 (memory-gate,
+# decision-gate, phase-order, actor-check, brain-writes-reviewed, issue-link,
+# diff-size, local-checks, lane-paths, lane-scrub). Each job name becomes the
+# GitHub check context reported as "governance / <job-name>". These names are
+# load-bearing: brain/scripts/vcs/governance-checks.mjs (S3) derives the required
+# status-check list from them, and branch protection references them by context.
+#
+# Trigger: pull_request (NOT pull_request_target) — the gate needs no write
+# token and must not run untrusted PR code with secrets; read scopes suffice.
+
+name: governance
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  # ── Invariant 1 — Every PR links an approved issue ──────────────────────────
+  #
+  # Chained-PR awareness: slice PRs target a feature/tracker branch (base != the
+  # default branch) and legitimately carry "Part of #N" instead of "Closes #N".
+  # The integration PR must still use Closes|Fixes|Resolves #N. Both patterns must
+  # reference an issue carrying the resolved approved label.
+  #
+  # THE RULE LIVES IN ONE PLACE (issue #130). This job used to be ~50 lines of
+  # inline bash implementing that policy a second time, while GitLab ran
+  # `run-check.mjs issue-link`. Two implementations of one rule is the defect #340
+  # records, and here it had already produced a REAL divergence, recorded in this
+  # file's own comment as a follow-up: the bash compared BASE_BRANCH against the
+  # LITERAL 'main', so a consumer whose default branch is `master` or `develop`
+  # got the SLICE policy on their integration PRs — "Part of #N" accepted where a
+  # closing keyword was required. The gate silently weakened, on exactly the
+  # consumers #130 exists to serve.
+  #
+  # run-check.mjs derives it from ctx.defaultBranch and FAILS CLOSED when that is
+  # uncomputable, rather than assuming. It also distinguishes "could not read the
+  # PR body" (infra) from "no issue reference found" (governance) — a distinction
+  # the bash could not make, and the one that made #522/#523 read as a governance
+  # failure when the reader had simply come back empty.
+  issue-link:
+    name: issue-link
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 (#905, ADR-0034 L1/D1a) — issue-link now recomputes the
+      # lane predicate itself over the three-dot diff (BASE_SHA...HEAD_SHA)
+      # before exempting a memory/* head from the closing-keyword requirement.
+      # It already declares PR_NUMBER + VCS_TOKEN for fetchIssue below, so its
+      # auth verdict is unchanged — this only widens the checkout.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify approved issue link
+        env:
+          # VCS_TOKEN, not GH_TOKEN (#479): this step now reaches the server
+          # through the port, which resolves brain's one neutral credential.
+          VCS_TOKEN: ${{ github.token }}
+          # PR_NUMBER lets ci-context fetch the body API-primary; PR_BODY stays as
+          # the documented fallback for when that fetch is uncomputable.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          # The repo's REAL default branch — repo metadata, never trigger identity
+          # (ADR-0016 ruling 1). This is the input the literal 'main' used to be.
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          # #905 — feeds the lane predicate's three-dot diff (classifyLane).
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node brain/scripts/governance/run-check.mjs issue-link
+
+  # ── Invariant 2 — PR diff fits within the tiered review budget ──────────────
+  #
+  # Tiered (issue #358 Q5, REQ-TIER-9): the budget (400 at the default
+  # 'standard' tier) and the size:exception waiver are BOTH resolved by
+  # run-check.mjs's diff-size case (governance-tiers.mjs#tierParams), the same
+  # path brain:protect/checkContexts() use — never a second bash-level literal
+  # or a second size:exception grep. PR_NUMBER/VCS_TOKEN let ci-context.mjs
+  # fetch FRESH labels (never CI-frozen ones — design.md Decision 2).
+  diff-size:
+    name: diff-size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce diff size budget (tiered)
+        env:
+          # VCS_TOKEN, not GH_TOKEN (#535): this step reaches the server through
+          # the port (via ci-context.mjs's PR_NUMBER-gated bootstrap), which
+          # resolves brain's one neutral credential.
+          VCS_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node brain/scripts/governance/run-check.mjs diff-size
+
+  # ── Invariant 3 (L1, governance v3) — local-only checks run in CI too ───────
+  #
+  # repo:check and brain:nav previously ran only in the local pre-push hook
+  # (brain/scripts/hooks/pre-push), which is bypassable via `git push
+  # --no-verify` or simply not installed. This job closes that gap
+  # author-agnostically: it runs on every PR event covered by the workflow
+  # trigger above, regardless of whether the contributor's local hook ran.
+  #
+  # repo:check and brain:nav validate the CONSUMER's own brain/ state, so they
+  # run everywhere this vendored workflow lands. `npm test` is different: it is
+  # brain's INTERNAL unit suite (node --test brain/scripts/**), which exercises
+  # brain's own tooling against brain-repo state — ambient docs.language,
+  # brain/project/** files, brain-repo paths — that a consumer does not have.
+  # Running it in a consumer is a portability treadmill (issues #206, #211).
+  # Gate it to the brain SOURCE repo via the .brain-source marker (present only
+  # here, never a managed path, so never vendored). Consumers skip it and stay
+  # green; brain's own CI still runs the full suite.
+  local-checks:
+    name: local-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: repo:check (structural reference checks)
+        run: npm run brain:repo:check
+
+      - name: brain:nav (navigation/link integrity)
+        run: npm run brain:nav
+
+      - name: memory:index-lag (warn on index/records drift, never fails)
+        run: node brain/scripts/memory/index-lag.mjs
+
+      - name: test (brain internal unit suite — brain source only)
+        if: ${{ hashFiles('.brain-source') != '' }}
+        run: npm test
+
+  # ── Invariant 4 (L3, governance v3) — session memory was captured ──────────
+  #
+  # Wraps the existing pure memoryPresence check: fails when no committed
+  # .memory/records/ OR .memory/chunks/ observation is a session_summary
+  # (transitional: both sources are unioned during the chunks→records cutover
+  # window — see run-check.mjs). Thin runner keeps the logic in the tested
+  # pure function (design §4).
+  memory-gate:
+    name: memory-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: memory-gate (session summary captured)
+        env:
+          # VCS_TOKEN, not GH_TOKEN (#1024, mirrors issue-link:61-71): reaches
+          # the server through the port (prView, labelEvents) via ci-context's
+          # PR_NUMBER-gated bootstrap, which resolves brain's one neutral
+          # credential.
+          VCS_TOKEN: ${{ github.token }}
+          # PR_NUMBER/PR_BODY let ci-context.mjs's loadContext() populate
+          # ctx.body (issue scoping, REQ-L3-4) and ctx.labels (the
+          # skip:memory-gate override, REQ-L3-5) from the SAME prView call.
+          # Without these the job's context was structurally uncomputable
+          # (both null), so memoryRetrieval() never ran in CI — #1024's gap.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          # Repo metadata (never trigger identity — ADR-0016 ruling 1), mapped
+          # so ci-context.mjs's loadContext() can compute ctx.defaultBranch.
+          # NOT fetch-depth: 0 here (D1): the scoped check's own targeted
+          # `git fetch origin <default>` reads the default branch's
+          # `.memory/records/` without a checkout, so the union read works on
+          # GitHub's depth-1 checkout and covers GitLab's shallow clone too,
+          # with no YAML edit needed on either side. It also lets a manual
+          # re-run heal a PR after the record lands on its own lane — a
+          # frozen `fetch-depth: 0` checkout would not move until the next
+          # event.
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node brain/scripts/governance/run-check.mjs memory-gate
+
+  # ── Invariant 5 (L3, governance v3) — architectural changes carry an ADR ────
+  #
+  # Wraps the existing pure adrPresence check over the PR's diff. Needs full
+  # history (fetch-depth: 0) to diff BASE_SHA...HEAD_SHA.
+  decision-gate:
+    name: decision-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: decision-gate (architectural changes carry an ADR)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # See memory-gate above (issue #231 A2 phase 2 addendum).
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node brain/scripts/governance/run-check.mjs decision-gate
+
+  # ── Invariant 6 (L4, governance v3) — SDD phase order ───────────────────────
+  #
+  # Wraps evaluatePhaseOrder() over the PR's diff + touched openspec/changes/**
+  # artifact state. Tier-scoped (issue #358 Q5 Phase 5, governance-tiers.mjs
+  # GATE_MATRIX['phase-order']): `required` at standard/regulated (promoted
+  # once phase-order-check.mjs's uncomputable-diff branch fail-closed, ADR-0015's
+  # precondition), stays `detection` at `lite` by proportionality (design §2.B).
+  # Runs and reports on every PR at every tier regardless (REQ-TIER-3);
+  # branch-protection membership is what varies (checkContexts(tier)).
+  phase-order:
+    name: phase-order
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: phase-order (SDD phase-order + artifact completeness, tier-scoped)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # See memory-gate above (issue #231 A2 phase 2 addendum).
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node brain/scripts/vcs/phase-order-check.mjs
+
+  # ── Invariant 7 (L5, governance v3) — human-approval actor ──────────────────
+  #
+  # Wraps evaluateActor() over the status:approved labeling history of the
+  # issue referenced by the PR body. Reuses the existing `permissions: issues:
+  # read` (governance.yml:19) and the same issue-number extraction rules as the
+  # issue-link job. Never-tiered by position (REQ-TIER-2, governance-tiers.mjs
+  # GATE_MATRIX['actor-check']): `required` at every tier — promoted in issue
+  # #358 Q5 Phase 5, once REQ-L5-1's tiered evidence forms shipped (Phase 4).
+  actor-check:
+    name: actor-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: actor-check (status:approved actor differs from the author, tiered evidence)
+        env:
+          # VCS_TOKEN, not GH_TOKEN (#535): this step reaches the server directly
+          # from its own handler code, through the port.
+          VCS_TOKEN: ${{ github.token }}
+          # PR_NUMBER lets ci-context.mjs source the author from the prView API
+          # (ADR-0016 Never-do #3: never the author from env). PR_BODY stays as the
+          # DETECTION-only body fallback; PR_AUTHOR removed (author now via API).
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          # See memory-gate above (issue #231 A2 phase 2 addendum).
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node brain/scripts/vcs/actor-check.mjs
+
+  # ── Invariant 8 (L6, governance v3) — brain-writes reviewed ─────────────────
+  #
+  # Wraps evaluateBrainWritesReviewed() over the PR's changed files + its
+  # review history. Reuses the existing `permissions: pull-requests: read`
+  # (governance.yml:18). Never-tiered by position (REQ-TIER-2,
+  # governance-tiers.mjs GATE_MATRIX['brain-writes-reviewed']): `required` at
+  # every tier — promoted in issue #358 Q5 Phase 5, once REQ-L6-1' tiered
+  # evidence forms shipped (Phase 4). CODEOWNERS remains a separate, optional
+  # rung-1 enhancement (PR6b, design §6.2).
+  brain-writes-reviewed:
+    name: brain-writes-reviewed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: brain-writes-reviewed (brain/core or brain/project changes carry a human review, tiered evidence)
+        env:
+          # VCS_TOKEN, not GH_TOKEN (#535): this step reaches the server directly
+          # from its own handler code, through the port.
+          VCS_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # See memory-gate above (issue #231 A2 phase 2 addendum).
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node brain/scripts/vcs/brain-writes-reviewed.mjs
+
+  # ── Invariant 9 (L1, ADR-0034) — the memory lane's path predicate ───────────
+  #
+  # Wraps evaluateLanePaths() over the three-dot diff (classifyLane,
+  # governance/checks/lane.mjs). A required, SELF-REPORTING context (design.md
+  # A5, D3): runs and passes explicitly on every non-lane PR ("not a lane —
+  # nothing to check", exit 0), never skipped, so a required context always
+  # reports. NO PR_NUMBER in this step's env (lib/workflow-auth.mjs:57-64 — a
+  # step declaring PR_NUMBER requires VCS_TOKEN); this job needs only
+  # BASE_SHA/HEAD_SHA + the ambient GITHUB_HEAD_REF (pull_request-only), so it
+  # stays offline by construction.
+  lane-paths:
+    name: lane-paths
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: lane-paths (the memory lane's path predicate)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node brain/scripts/governance/lane-paths.mjs
+
+  # ── Invariant 10 (C1, ADR-0034) — non-waivable secret scan on added records ─
+  #
+  # Wraps evaluateLaneScrub() over every ADDED `.memory/records/*.jsonl` path —
+  # on EVERY PR, lane or not (design.md A6: the five #890 feature-PR surfaces
+  # are still live). Never imports governance-tiers.mjs (source-guarded by
+  # lane-scrub.test.mjs): non-waivability is a property of the code, not a
+  # GATE_MATRIX cell a tier edit could soften. Same PR_NUMBER-free, offline
+  # construction as lane-paths above.
+  lane-scrub:
+    name: lane-scrub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: lane-scrub (non-waivable secret scan on added records)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node brain/scripts/governance/lane-scrub.mjs
+
+  # ── Invariant 11 (issue #967 PR C) — a slice PR's base is its epic's tracker ─
+  #
+  # A slice belongs on its epic's tracker while that epic is in flight
+  # (`brain:ticket:start` already enforces this at creation time — PR B,
+  # lib/ticket-base.mjs). This job is the backstop: a PR that reached the
+  # forge with the wrong base anyway is refused, not merely warned about — a
+  # warning is what let #953 land on `main` (design.md D9). REQUIRED at every
+  # tier, `lite` included (governance-tiers.mjs GATE_MATRIX['base-branch'],
+  # ruling 1) — a deliberate exception to "lite only detects".
+  #
+  # The check runs no git: no BASE_SHA/HEAD_SHA, no fetch-depth: 0. Its own
+  # reads are at most two `issueView` calls (the linked issue, then its
+  # parent) via the VCS port — the same shape `issue-link` above uses.
+  base-branch:
+    name: base-branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify the PR's base against its epic's declared tracker
+        env:
+          # VCS_TOKEN, not GH_TOKEN (#479): this step reaches the server
+          # through the port, which resolves brain's one neutral credential.
+          VCS_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          # The repo's REAL default branch — repo metadata, never trigger
+          # identity (ADR-0016 ruling 1).
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node brain/scripts/governance/run-check.mjs base-branch

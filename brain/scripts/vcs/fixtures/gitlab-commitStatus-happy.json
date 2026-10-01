@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "GET projects/:enc/commits/:sha/statuses?per_page=1",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "No reachable live `glab` session in this environment (standing deferral). Also derived per design D3: the assertion pins the specific 'success' enum value, which a live re-recording could not guarantee. Hand-authored from the documented GitLab commit-statuses API shape, issue #385, M10 Phase 2 final Gap-A batch."
+  },
+  "data": [
+    { "id": 501, "name": "ci/build", "status": "success", "sha": "cafef00dcafef00dcafef00dcafef00dcafef00d" }
+  ]
+}

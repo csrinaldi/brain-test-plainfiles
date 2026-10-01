@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "gh pr create --title ... --body ... --head ... --base ...",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "Hand-authored to exercise github.mjs#mrCreate's non-ok-exit → { url: null, error } path — matches gh's real stderr shape for a duplicate/invalid head branch."
+  },
+  "throws": true,
+  "error": "a pull request for branch \"feat/x\" into branch \"main\" already exists"
+}

@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "gh auth login --hostname github.com --with-token",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "authLogin is a MUTATING verb -- recording it live would overwrite this sandbox's real stored gh credentials as a side effect of fixture maintenance, the same reason github-mrCreate-happy.json is derived rather than recorded (record-fixtures.mjs:24-30). Hand-authored from gh's documented `auth login --with-token` contract: a valid token piped via stdin exits zero silently."
+  },
+  "status": 0,
+  "stdout": "",
+  "stderr": "✓ Logged in as csrinaldi\n"
+}

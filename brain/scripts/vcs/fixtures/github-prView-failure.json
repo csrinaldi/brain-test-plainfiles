@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "gh pr view :number --json number,labels,body,author",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "A forced-failure response cannot be recorded from a real API call — hand-authored to exercise github.mjs#prView's not-ok-exit → null-shape path."
+  },
+  "throws": true,
+  "error": "no pull requests found for branch"
+}

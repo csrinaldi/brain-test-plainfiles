@@ -1,0 +1,20 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/issues?state=opened&per_page=50",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment (record-fixtures.mjs:27-34's standing constraint) — hand-authored from the documented GitLab REST API v4 issues shape (https://docs.gitlab.com/ee/api/issues.html), trimmed to the fields gitlab.mjs#issueList actually consumes (iid, title, labels). GitLab's issues endpoint returns only issues — no pull_request-equivalent field exists on any entry, which is itself why the pull_request filter is GitHub-only. labels is already a flat string array (no per-label object unwrapping needed), unlike GitHub's label objects. Two entries, matching the github-issueList-happy.json discipline of exercising the per-entry assertion loop genuinely."
+  },
+  "data": [
+    {
+      "iid": 42,
+      "title": "Add pagination guard to labelList",
+      "labels": ["type:bug", "status:needs-review"]
+    },
+    {
+      "iid": 41,
+      "title": "Fix issueView author normalization",
+      "labels": []
+    }
+  ]
+}

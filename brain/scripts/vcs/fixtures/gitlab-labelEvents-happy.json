@@ -1,0 +1,27 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/issues/:iid/resource_label_events",
+    "date": "2026-07-11",
+    "derived": true,
+    "live_verified": "shape live-verified 2026-07-11 by human curl against the mirror (CP-A3a closing condition) — full field-by-field MATCH, including the exact event m3 consumes: action:'add' + label.name:'status::approved' from the fixture issue, confirmed against real traffic. Derived shape was faithful (written from docs sight-unseen).",
+    "note": "Not reachable from this sandbox at authoring time (CP-A3b live smoke deferred to the self-hosted phase, per tasks.md Open Questions — same posture as CP-A2b). Hand-authored from the documented GitLab REST API v4 resource_label_events response shape (https://docs.gitlab.com/ee/api/resource_label_events.html): id, user.username, resource_type, action ('add'|'remove'), label.name, created_at. Shape since confirmed live (see live_verified)."
+  },
+  "data": [
+    {
+      "id": 119,
+      "user": { "id": 42, "username": "alice" },
+      "resource_type": "Issue",
+      "action": "add",
+      "label": { "id": 7, "name": "status::approved", "color": "#0e8a16" },
+      "created_at": "2026-07-10T10:00:00.000Z"
+    },
+    {
+      "id": 121,
+      "user": { "id": 42, "username": "alice" },
+      "resource_type": "Issue",
+      "action": "remove",
+      "label": { "id": 7, "name": "status::approved", "color": "#0e8a16" },
+      "created_at": "2026-07-10T11:30:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests?state=all&per_page=50",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment (record-fixtures.mjs:27-34's standing constraint) — hand-authored (#930, D1) from the documented GitLab REST API v4 merge_requests list shape, native `state` enum (opened/closed/merged), to exercise the additive state/merged mapping across all three outcomes an `all`-state query can return. Trimmed to the fields gitlab.mjs#mrList consumes (iid, title, source_branch, state)."
+  },
+  "data": [
+    {
+      "iid": 60,
+      "title": "feat: an open feature branch, never closed",
+      "source_branch": "feat/open-one",
+      "state": "opened"
+    },
+    {
+      "iid": 58,
+      "title": "fix: a merged bugfix",
+      "source_branch": "fix/merged-one",
+      "state": "merged"
+    },
+    {
+      "iid": 55,
+      "title": "chore: an abandoned branch, closed without merging",
+      "source_branch": "chore/abandoned-one",
+      "state": "closed"
+    }
+  ]
+}

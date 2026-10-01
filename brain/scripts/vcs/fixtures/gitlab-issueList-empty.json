@@ -1,0 +1,9 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/issues?state=opened&per_page=50",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment (record-fixtures.mjs:27-34's standing constraint) — hand-authored to exercise gitlab.mjs#issueList's empty-array path. tracker-board.mjs:58's myIssues.length is unguarded, so [] (never null) is the contractual requirement being pinned, mirroring gitlab-mrList-empty.json."
+  },
+  "data": []
+}

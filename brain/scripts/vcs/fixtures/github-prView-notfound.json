@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "gh pr view 978 --json number,labels,body,author,headRefOid (repo: csrinaldi/brain)",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "Read-only live confirmation for issue #1086 task 2.1: #978 in csrinaldi/brain is a real GitHub ISSUE, not a pull request. The stderr string below was captured verbatim from a real `gh pr view 978 --json number,labels,body,author,headRefOid` invocation in this session (gh version 2.46.0), via the production `run()`/spawnSync path — not hand-authored — and matches uncomputable-cause.mjs's NOT_FOUND_RE (`could not resolve to a`), classifying `not-found`. Marked `derived` rather than `recorded` per this repo's convention that a forced-failure/not-found shape is `derived` even when the text is genuinely live-captured (mirrors github-prView-failure.json's discipline for the failure family)."
+  },
+  "throws": true,
+  "error": "GraphQL: Could not resolve to a PullRequest with the number of 978. (repository.pullRequest)\n"
+}

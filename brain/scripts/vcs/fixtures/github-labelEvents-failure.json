@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/issues/:number/events",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "A forced-failure response cannot be recorded from a real API call (there is no deterministic way to make `gh api` fail on demand against a live repo) — hand-authored to exercise github.mjs#labelEvents' catch-and-return-null path."
+  },
+  "throws": true,
+  "error": "HTTP 500: Internal Server Error"
+}

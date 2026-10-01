@@ -1,0 +1,12 @@
+{
+  "_provenance": {
+    "endpoint": "POST /projects/:id/merge_requests",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment, AND this is a mutating write (same reasoning as github-mrCreate-happy.json) — never auto-recorded. Hand-authored from the documented GitLab REST API v4 create-MR response shape (https://docs.gitlab.com/ee/api/merge_requests.html#create-mr): the `web_url` field gitlab.mjs#mrCreate reads."
+  },
+  "data": {
+    "iid": 55,
+    "web_url": "https://gitlab.example.com/g/r/-/merge_requests/55"
+  }
+}

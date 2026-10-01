@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/{project}/actions/workflows/governance-postmerge.yml/runs?branch={ref}",
+    "date": "2026-08-06",
+    "derived": true,
+    "note": "Hand-authored from the documented GitHub Actions 'List workflow runs for a workflow' response shape. Exercises the 'zero terminal runs recorded' branch: the workflow file is wired but has never run on this branch — realPostMergeCiProbe must return read:'ok', lastRun:null, never fabricate a run."
+  },
+  "data": {
+    "workflow_runs": []
+  }
+}

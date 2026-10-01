@@ -1,0 +1,14 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "Not reachable from this sandbox at authoring time (no live-recording pass exists yet for this endpoint). Hand-authored from the documented GitLab REST API v4 project response shape (https://docs.gitlab.com/ee/api/projects.html#get-single-project): only_allow_merge_if_pipeline_succeeds — the single field gitlab.mjs#projectMergeSettings reads. Live-verifiable via curl against the mirror once exercised (CP-A3a precedent for the derived stamp)."
+  },
+  "data": {
+    "id": 1,
+    "path_with_namespace": "g/r",
+    "default_branch": "main",
+    "only_allow_merge_if_pipeline_succeeds": true
+  }
+}

@@ -1,0 +1,85 @@
+# release.yml — L2 release-gate (rung 2, fail-closed)
+#
+# Reuses brain/scripts/brain-audit.mjs UNCHANGED. brain-audit already exits 1 on
+# any failing invariant (brain-audit.mjs:235), so a red audit blocks the release
+# job -> bad state may sit on main but is never released. This is the primary
+# enforcing guarantee for free-tier-private repos where branch protection
+# (rung 1) is unreachable. The presence of this workflow is what detectSubstrate
+# probes for rung 2 (see design.md §3, REQ-L2-1).
+#
+# Deliberately a SEPARATE workflow from governance.yml: the PR-time gate stays
+# read-only; this one only ever runs on a tag push, never on untrusted PR code
+# (design.md §10-B, gap B).
+#
+# Range note: brain merges the release PR to main, THEN tags that commit. On the
+# tag push, origin/main is at/ahead of the tagged commit, so origin/main..HEAD is
+# EMPTY — brain-audit.mjs would log "No merge commits found" and exit 0
+# unconditionally, making this gate a silent no-op. Audit from the PREVIOUS
+# release tag to the tagged commit instead (always non-empty, falls back to the
+# repo root commit for the first-ever release).
+
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag name (e.g. v1.1.0)'
+        required: true
+        type: string
+
+# `pull-requests: read` is load-bearing and is NOT redundant with the token (#475).
+# When a workflow declares a `permissions:` block, every scope it omits becomes
+# `none` — so handing the rung-2 audit a credential without this line would give it
+# a token that cannot read `repos/{o}/{r}/pulls/{n}`, and the gate would keep running
+# blind while LOOKING fixed. That is the failure mode this repository keeps paying
+# for, so the scope and the credential land together or not at all.
+#
+# `read` is the minimum and the maximum: the audit only reads (`prView`).
+permissions: { contents: write, pull-requests: read }
+
+jobs:
+  audit-gate:
+    name: audit-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run brain-audit over the previous release tag..HEAD
+        # Rung 2 audited every release window UNAUTHENTICATED (#475). This file's own
+        # header calls rung 2 "the primary enforcing guarantee for free-tier-private
+        # repos where branch protection (rung 1) is unreachable" — and it was the rung
+        # reading nothing. It fails CLOSED, so releases were blocked rather than waved
+        # through; but blocked for a reason with nothing to do with the release, telling
+        # the operator the repo violated governance when the gate simply could not read
+        # it. Measured over 653e34e..c724942: authenticated PASS, unauthenticated FAIL
+        # on issueLink, same commit.
+        env:
+          VCS_TOKEN: ${{ github.token }}
+        run: |
+          # Audit every merge since the previous release tag (PREV_TAG..HEAD).
+          # audit-then-tag: this gate MUST pass before tag creation.
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          node brain/scripts/brain-audit.mjs "${PREV_TAG}..HEAD"
+
+      - name: Create and push release tag
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+        run: |
+          # Tag and release creation: only after brain-audit exits 0.
+          if [ -z "$TAG_NAME" ]; then
+            echo "::error::tag_name input is required"
+            exit 1
+          fi
+          git config user.name "brain-ci"
+          git config user.email "noreply@github.com"
+          git tag "$TAG_NAME" HEAD
+          git push origin "$TAG_NAME"
+
+

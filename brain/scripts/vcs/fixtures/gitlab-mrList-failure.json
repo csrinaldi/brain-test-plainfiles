@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests?state=opened&per_page=50",
+    "date": "2026-07-29",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment (record-fixtures.mjs:27-34's standing constraint) — hand-authored to exercise runJson's non-zero-exit throw path (exec.mjs:31-32), since gitlab.mjs#mrList spawns `glab` via runJson rather than fetching over gitlabApiFetch. Unlike prView/issueView/labelEvents/prStatusRollup, this REJECTS rather than yielding a null-shape (design D3) — pinned as a documented divergence, not fixed here."
+  },
+  "throws": true,
+  "error": "glab: 404 Project Not Found"
+}

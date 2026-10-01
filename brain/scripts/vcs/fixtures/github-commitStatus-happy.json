@@ -1,0 +1,14 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/commits/:sha/check-runs",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "Derived, not recorded (design D3/manifest): this fixture's assertions pin the SPECIFIC status/conclusion combination (a completed, successful check), which a live check-runs payload cannot guarantee across re-recordings. Hand-authored from the documented GitHub check-runs API shape, issue #385, M10 Phase 2 final Gap-A batch."
+  },
+  "data": {
+    "total_count": 1,
+    "check_runs": [
+      { "name": "ci/build", "status": "completed", "conclusion": "success" }
+    ]
+  }
+}

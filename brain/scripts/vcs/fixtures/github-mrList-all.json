@@ -1,0 +1,37 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/pulls?state=all&per_page=100",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "Hand-authored (#930, D1) to exercise the additive state/merged mapping across all three PR outcomes an `all`-state query can return — open, closed+merged, closed+unmerged — trimmed to the fields github.mjs#mrList consumes (number, title, head.ref, state, merged_at)."
+  },
+  "data": [
+    {
+      "number": 501,
+      "title": "feat: an open feature branch, never closed",
+      "head": {
+        "ref": "feat/open-one"
+      },
+      "state": "open",
+      "merged_at": null
+    },
+    {
+      "number": 498,
+      "title": "fix: a merged bugfix",
+      "head": {
+        "ref": "fix/merged-one"
+      },
+      "state": "closed",
+      "merged_at": "2026-09-10T12:00:00Z"
+    },
+    {
+      "number": 495,
+      "title": "chore: an abandoned branch, closed without merging",
+      "head": {
+        "ref": "chore/abandoned-one"
+      },
+      "state": "closed",
+      "merged_at": null
+    }
+  ]
+}

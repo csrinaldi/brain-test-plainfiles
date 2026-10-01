@@ -1,0 +1,81 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/csrinaldi/brain/issues?state=open&per_page=100",
+    "date": "2026-07-30",
+    "recorded": true,
+    "note": "Trimmed to the fields github.mjs#issueList actually consumes — kept per the \"fields the normalizer reads, not fields it maps\" rule: pull_request (read as filter input, never emitted by the result) is kept as { url }, and labels is kept as [{ name }] objects rather than pre-flattened to strings, so the contract suite's PR-filter and label-unwrap assertions exercise real behavior, not a pre-normalized fixture. Curated to 8 of the 40 live open issues at record time (2 PR entries, 6 plain issues — 4 labeled, 2 unlabeled) to keep the fixture reviewable while preserving the recorded field values and relative order unmodified; re-run record-fixtures.mjs to refresh against the live repo state."
+  },
+  "data": [
+    {
+      "number": 362,
+      "title": "feat(m10-phase2): issueList contract-parity coverage (rank 4)",
+      "labels": [
+        {
+          "name": "type:feature"
+        },
+        {
+          "name": "status:needs-review"
+        }
+      ]
+    },
+    {
+      "number": 361,
+      "title": "fix(memory): index self-healing is backend-asymmetric — engram.share() reindexes conditionally and engram.pull() never does",
+      "labels": []
+    },
+    {
+      "number": 358,
+      "title": "Q5 — Architecture decision: doctrine tiers (lite/standard/regulated)",
+      "labels": []
+    },
+    {
+      "number": 342,
+      "title": "M10: seam-contract-coverage epic tracker",
+      "labels": [],
+      "pull_request": {
+        "url": "https://api.github.com/repos/csrinaldi/brain/pulls/342"
+      }
+    },
+    {
+      "number": 340,
+      "title": "fix(governance): issue-link local check and CI job implement the same rule differently — brain:check greenlights PRs that CI rejects",
+      "labels": [
+        {
+          "name": "type:bug"
+        },
+        {
+          "name": "status:needs-review"
+        }
+      ]
+    },
+    {
+      "number": 336,
+      "title": "feat(vcs): M10 Phase 1 — port-verb contract coverage audit (detection only)",
+      "labels": [
+        {
+          "name": "type:feature"
+        },
+        {
+          "name": "status:needs-review"
+        }
+      ]
+    },
+    {
+      "number": 331,
+      "title": "fix(governance): re-order release audit gate to audit-then-tag and add audit baseline",
+      "labels": [],
+      "pull_request": {
+        "url": "https://api.github.com/repos/csrinaldi/brain/pulls/331"
+      }
+    },
+    {
+      "number": 329,
+      "title": "fix(governance): actor-check L5 and #124 are mutually unsatisfiable for a solo maintainer",
+      "labels": [
+        {
+          "name": "type:bug"
+        }
+      ]
+    }
+  ]
+}

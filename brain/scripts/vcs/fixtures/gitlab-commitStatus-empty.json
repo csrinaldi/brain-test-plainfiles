@@ -1,0 +1,9 @@
+{
+  "_provenance": {
+    "endpoint": "GET projects/:enc/commits/:sha/statuses?per_page=1",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "No reachable live `glab` session in this environment (standing deferral). Hand-authored to exercise the normalizer's `raw == null` guard (normalize.mjs:34-35) via `arr[0]?.status` on an empty array — a SUCCESSFUL call with nothing to report, distinct from the failure fixture's rejection (issue #385, M10 Phase 2 final Gap-A batch)."
+  },
+  "data": []
+}

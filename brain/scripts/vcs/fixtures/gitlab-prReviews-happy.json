@@ -1,0 +1,42 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests/:iid/notes?order_by=created_at&sort=asc&per_page=100 + GET /projects/:id/merge_requests/:iid/approvals",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "Not reachable from this sandbox at authoring time (no live GitLab mirror — same posture as every other gitlab-* fixture; CP-A3b live smoke deferred to the self-hosted phase). Hand-authored from the documented GitLab REST API v4 response shapes: notes (https://docs.gitlab.com/ee/api/notes.html — id, body, author.username, created_at, system) and merge-request approvals (https://docs.gitlab.com/ee/api/merge_request_approvals.html — approved_by[].user.username).",
+    "shape_note": "This is the only fixture in the suite whose `data` is an OBJECT keyed by endpoint rather than one response payload, because gitlab.mjs#prReviews is the only verb that reads TWO endpoints (issue #317): notes carry the verdict thread, approvals carry the L6 approver roster. The contract suite's gitlab glue dispatches on the request URL to serve the matching half.",
+    "content_note": "The notes list deliberately mixes all three classes the normalizer must tell apart: a GitLab SYSTEM note (dropped — activity record, never reviewer speech), a plain human comment (kept, no verdict block), and a reviewer verdict note carrying a real brain-review/1 fenced block (kept, and the one the contract suite feeds through parseVerdict). `created_at` is ascending, matching the sort=asc the verb requests. The approver in `approved_by` is a DIFFERENT identity from every note author, so a test asserting notes never normalize to state:'APPROVED' cannot pass by coincidence."
+  },
+  "data": {
+    "notes": [
+      {
+        "id": 301,
+        "body": "changed target branch from `master` to `main`",
+        "author": { "id": 9, "username": "gitlab-bot" },
+        "created_at": "2026-07-10T09:00:00.000Z",
+        "system": true
+      },
+      {
+        "id": 302,
+        "body": "Looks reasonable to me, but let's wait for the reviewer.",
+        "author": { "id": 42, "username": "alice" },
+        "created_at": "2026-07-10T10:00:00.000Z",
+        "system": false
+      },
+      {
+        "id": 303,
+        "body": "```yaml\nprotocol: brain-review/1\nverdict: REVISE\nhead_sha: 70383327c5a76f09249087aa1a77a8ddee12ae12\nrev: 1\ngates:\n  required: [issue-link, diff-size, local-checks, memory-gate, decision-gate]\n  detection: [phase-order, actor-check, brain-writes-reviewed]\nfindings: []\nconditions: []\nescalate: null\n```",
+        "author": { "id": 77, "username": "brain-reviewer" },
+        "created_at": "2026-07-10T11:30:00.000Z",
+        "system": false
+      }
+    ],
+    "approvals": {
+      "id": 7,
+      "iid": 7,
+      "approved_by": [
+        { "user": { "id": 55, "username": "bob" } }
+      ]
+    }
+  }
+}

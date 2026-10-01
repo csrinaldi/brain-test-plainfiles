@@ -1,0 +1,12 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/commits/:sha/check-runs",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "Derived: a genuinely empty check-runs response is a real, reproducible transport shape (an unqueried sha), but is not tied to any single live recording. Hand-authored to exercise github.mjs#commitStatus's `if (!cr) return null` guard — a SUCCESSFUL call with nothing to report, distinct from the failure fixture's rejection (issue #385, M10 Phase 2 final Gap-A batch)."
+  },
+  "data": {
+    "total_count": 0,
+    "check_runs": []
+  }
+}

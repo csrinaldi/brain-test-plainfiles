@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "glab auth status --hostname gitlab.com",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "No live glab session is reachable from this environment. Hand-authored from glab's documented CLI contract: a not-logged-in host exits non-zero with an explanatory stderr message."
+  },
+  "status": 1,
+  "stdout": "",
+  "stderr": "gitlab.com: no token provided and no oauth2 config found\n"
+}

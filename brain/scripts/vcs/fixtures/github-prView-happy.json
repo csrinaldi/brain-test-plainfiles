@@ -1,0 +1,25 @@
+{
+  "_provenance": {
+    "endpoint": "gh pr view 238 --json number,labels,body,author (repo: csrinaldi/brain)",
+    "date": "2026-07-11",
+    "recorded": true
+  },
+  "data": {
+    "author": {
+      "id": "MDQ6VXNlcjE2ODU3MDM=",
+      "is_bot": false,
+      "login": "csrinaldi",
+      "name": "Cristian Rinaldi"
+    },
+    "body": "Part of #231\n\nCP-A2b **mirror phase VALIDATED**. Adds the Results section to `cp-a2b-runbook.md`: the final-run verdict (MR-compliant 8/8, MR-non-compliant issue-link red + 7 green = rung 1 operational), the layered findings table (#12/#13/#14 with their fixing PRs #235/#236/#237), and evidence placeholders for the mirror job URLs. Notes the remaining CP-A2b **self-hosted phase** as the only gap to A2's total closure.\n\nDocs-only. Part of #231.",
+    "labels": [
+      {
+        "id": "LA_kwDOTFCZYc8AAAACpMCHsQ",
+        "name": "type:docs",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 238
+  }
+}

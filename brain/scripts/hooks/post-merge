@@ -1,0 +1,75 @@
+#!/usr/bin/env sh
+# post-merge — best-effort engram re-import after a pull/merge (issue #59 / ADR-0002).
+#
+# Triggered automatically by git after:
+#   - git pull (when it results in a merge or fast-forward)
+#   - git merge
+#
+# Purpose: re-import .memory/ into local engram after git has integrated new commits,
+# so that memory chunks committed upstream are immediately available in local engram.
+#
+# Uses "import" (import-only, no git pull) because git itself already completed
+# the merge/pull before this hook fires. Running another git pull here would be
+# redundant (extra network call) and risks infinite recursion on some git versions.
+#
+# Behaviour:
+#   - Non-blocking (|| true): a failed import NEVER aborts the merge/pull.
+#   - No node required for the guard — we call node only when it is available.
+#   - Mirrors the defensive style of the pre-push hook.
+#
+# Installed via `core.hooksPath = brain/scripts/hooks` (bootstrap.sh §7 / npm run env:init).
+#
+# ── STREAM DISCIPLINE FOR HOOKS (issue #633) ────────────────────────────────
+#
+#   stdout is PROGRESS. stderr is SOMETHING A HUMAN NEEDS.
+#   A hook discards the first and NEVER the second.
+#
+# So `>/dev/null` is right and `2>&1` / `2>/dev/null` are wrong, on every
+# invocation, without exception. The `import` line below already stated this
+# reasoning for itself; `resolve-index` carried `2>&1` anyway, which is how a
+# rule that lives in one comment decays.
+#
+# `|| true` / `|| exit 0` are a SEPARATE decision and they stay: a tooling
+# problem must not block a merge. But once the exit code is thrown away, stderr
+# is the only channel left — discarding both leaves nothing at all.
+#
+# Enforced, not merely written down: hooks.stream-discipline.test.mjs scans
+# every hook for `cli.mjs` invocations and fails on any that discards stderr.
+
+# Without node there is nothing to do — do not block.
+command -v node >/dev/null 2>&1 || exit 0
+
+repo_root=$(git rev-parse --show-toplevel)
+
+# Re-import .memory/ into local engram now that the working tree is up-to-date.
+# Uses "import" verb (engram sync --import only — no redundant git pull).
+# || true: a failed import is informational, not a merge blocker.
+#
+# stdout is discarded (the per-run progress line is noise on every pull), but
+# STDERR is not. A hydration that SKIPPED because engram's state was unreadable
+# reports there, and swallowing it would make the skip as invisible as the
+# duplication it replaced. `|| true` still guarantees it cannot block the merge.
+_pm_rc=0
+node "$repo_root/brain/scripts/memory/cli.mjs" import >/dev/null || _pm_rc=$?
+# Exit 3/4 is the memory backend declaration refusal (#1165): nothing was imported because
+# nothing was attempted. Non-blocking still — one line says so instead of silence.
+if [ "$_pm_rc" -eq 3 ] || [ "$_pm_rc" -eq 4 ]; then
+  echo "post-merge: memory import skipped — memory backend not declared or invalid (npm run brain:config -- set memory.backend engram|plainfiles)" >&2
+fi
+
+# Keep the derived index canonical after a merge git resolved on its own
+# (issue #330). This does NOT rescue a conflicted merge — git never fires
+# post-merge when the merge fails; that case is the operator running
+# `npm run brain:memory:resolve-index` by hand. Here nothing is unmerged, so the
+# command only regenerates and stages nothing.
+# || true: index hygiene is informational, never a merge blocker.
+#
+# STREAM DISCIPLINE (issue #633) — see the header rule. This line carried `2>&1`
+# while the one above did not, and it is the worse of the two places to be
+# silent: `resolve-index` exists BECAUSE two branches merged, and `merge=union`
+# mints duplicate lines at exactly that moment. It was the one command in the
+# repository least able to afford being unable to say what the merge had just
+# duplicated.
+node "$repo_root/brain/scripts/memory/cli.mjs" resolve-index >/dev/null || true
+
+exit 0

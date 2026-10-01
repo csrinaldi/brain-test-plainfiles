@@ -1,0 +1,13 @@
+{
+  "_provenance": {
+    "recorded": true,
+    "endpoint": "gh pr merge <n> --auto --squash --repo csrinaldi/brain",
+    "date": "2026-09-09",
+    "captured_at": "2026-09-09",
+    "captured_by": "maintainer",
+    "command": "gh pr merge 895 --auto --squash --repo csrinaldi/brain",
+    "repo": "csrinaldi/brain",
+    "pr": 895
+  },
+  "stderr": "GraphQL: Auto merge is not allowed for this repository (enablePullRequestAutoMerge)"
+}

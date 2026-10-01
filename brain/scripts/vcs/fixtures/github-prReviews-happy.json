@@ -1,0 +1,31 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/csrinaldi/brain/pulls/360/reviews",
+    "date": "2026-07-31",
+    "recorded": true,
+    "note": "Trimmed to the fields github.mjs#prReviews actually consumes (state, user.login, body) via a jq-equivalent projection of the real response — values are unmodified from the live API. body is kept VERBATIM and untruncated: it carries the real brain-review/1 fenced block the contract suite feeds through parseVerdict, and truncating it would drop the closing fence and silently defeat that assertion."
+  },
+  "data": [
+    {
+      "state": "COMMENTED",
+      "user": {
+        "login": "csrinaldi"
+      },
+      "body": "```yaml\nprotocol: brain-review/1\nverdict: APPROVE\nhead_sha: 70383327c5a76f09249087aa1a77a8ddee12ae12\nrev: 1\ngates:\n  required: [issue-link, diff-size, local-checks, memory-gate, decision-gate]\n  detection: [phase-order, actor-check, brain-writes-reviewed]\nfindings: []\nconditions: []\nescalate: null\n```"
+    },
+    {
+      "state": "COMMENTED",
+      "user": {
+        "login": "csrinaldi"
+      },
+      "body": "```yaml\nprotocol: brain-review/1\nverdict: APPROVE\nhead_sha: c9cd10bb0a7ff43a3cf7fd0c80ee728da0a61928\nrev: 1\ngates:\n  required: [issue-link, diff-size, local-checks, memory-gate, decision-gate]\n  detection: [phase-order, actor-check, brain-writes-reviewed]\nfindings: []\nconditions: []\nescalate: null\n```"
+    },
+    {
+      "state": "COMMENTED",
+      "user": {
+        "login": "csrinaldibot"
+      },
+      "body": "```yaml\nprotocol: brain-review/1\nverdict: APPROVE\nhead_sha: 8debdcbec0634a66c3967a9f780721ec6b32d363\nrev: 1\ngates:\n  required: [issue-link, diff-size, local-checks, memory-gate, decision-gate]\n  detection: [phase-order, actor-check, brain-writes-reviewed]\nfindings: []\nconditions: []\nescalate: null\n```"
+    }
+  ]
+}

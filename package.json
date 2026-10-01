@@ -1,0 +1,57 @@
+{
+  "name": "brain-test-plainfiles",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "brain:upgrade": "node node_modules/@logikas/brain/brain/scripts/brain-upgrade.mjs",
+    "brain:env:init": "bash ./brain/scripts/bootstrap.sh",
+    "brain:day:start": "node ./brain/scripts/day-start.mjs",
+    "brain:session:start": "node ./brain/scripts/session-start.mjs",
+    "brain:ticket:start": "node ./brain/scripts/ticket-start.mjs",
+    "brain:project:feature": "node ./brain/scripts/new-change.mjs",
+    "brain:project:status": "node ./brain/scripts/project-status.mjs",
+    "brain:tracker:board": "node ./brain/scripts/tracker-board.mjs",
+    "brain:repo:check": "node ./brain/scripts/check-refs.mjs",
+    "brain:change:verify": "node ./brain/scripts/verify-change.mjs",
+    "brain:memory:session-end": "node ./brain/scripts/memory/session-end-ship.mjs",
+    "brain:adopt": "node ./brain/scripts/adopt.mjs",
+    "brain:audit": "node ./brain/scripts/brain-audit.mjs",
+    "brain:change:archive": "node ./brain/scripts/archive.mjs",
+    "brain:check": "node ./brain/scripts/brain-check.mjs",
+    "brain:config": "node ./brain/scripts/config/cli.mjs",
+    "brain:governance-status": "node ./brain/scripts/brain-governance-status.mjs",
+    "brain:metrics": "node ./brain/scripts/brain-metrics.mjs",
+    "brain:nav": "node ./brain/scripts/check-brain-nav.mjs",
+    "brain:next": "node ./brain/scripts/brain-next.mjs",
+    "brain:promote": "node ./brain/scripts/brain-promote.mjs",
+    "brain:protect": "node ./brain/scripts/brain-protect.mjs",
+    "brain:review": "node ./brain/scripts/review/cli.mjs",
+    "brain:review:board": "node ./brain/scripts/review/cli.mjs board",
+    "brain:ship": "node ./brain/scripts/brain-ship.mjs",
+    "brain:start": "node ./brain/scripts/brain-start.mjs",
+    "brain:memory:audit": "node ./brain/scripts/memory/cli.mjs audit",
+    "brain:memory:index": "node ./brain/scripts/memory/cli.mjs index",
+    "brain:memory:pull": "node ./brain/scripts/memory/cli.mjs pull",
+    "brain:memory:ship": "node ./brain/scripts/memory/cli.mjs ship --invoker manual",
+    "brain:memory:resolve-index": "node ./brain/scripts/memory/cli.mjs resolve-index",
+    "brain:memory:save": "node ./brain/scripts/memory/cli.mjs save",
+    "brain:memory:share": "node ./brain/scripts/memory/cli.mjs share"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csrinaldi/brain-test-plainfiles.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/csrinaldi/brain-test-plainfiles/issues"
+  },
+  "homepage": "https://github.com/csrinaldi/brain-test-plainfiles#readme",
+  "devDependencies": {
+    "@logikas/brain": "^1.11.0"
+  }
+}

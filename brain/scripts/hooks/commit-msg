@@ -1,0 +1,121 @@
+#!/usr/bin/env sh
+# commit-msg — validate conventional commit format + ticket reference.
+#
+# Hard checks (blocks the commit — both locally unambiguous):
+#   1. Conventional commit format: <type>[(<scope>)][!]: <description>
+#   2. Ticket ref (#N) — skipped while the repo has no commit at all (#1161),
+#      and for Merge, Revert, chore(release) and
+#      chore(memory) commits (machine-generated, legitimately ticket-less).
+#
+# No-node guard: exits 0 if node is not available (minimal env).
+# Installed via core.hooksPath = brain/scripts/hooks.
+
+command -v node >/dev/null 2>&1 || exit 0
+
+COMMIT_MSG_FILE="$1"
+msg=$(cat "$COMMIT_MSG_FILE")
+
+[ -z "$msg" ] && exit 0
+
+# Merge / Revert commits are exempt from both checks.
+case "$msg" in
+  Merge\ *|Revert\ *) exit 0 ;;
+esac
+
+# ── 1. Conventional commit format ───────────────────────────────────────────
+if ! echo "$msg" | grep -qE \
+  '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?(!)?: .+'; then
+  echo ""
+  echo "✗ commit-msg: message must follow Conventional Commits."
+  echo "  Format:  <type>[(<scope>)]: <description>"
+  echo "  Types:   feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert"
+  echo "  Example: feat(auth): add JWT validation (#42)"
+  echo ""
+  exit 1
+fi
+
+# ── 2. AI attribution (#671) ─────────────────────────────────────────────────
+# agent-authorities.md Tier 3: "Add AI attribution in commits" — the agent must
+# never do this, EVEN IF EXPLICITLY ASKED. Checked before the ticket ref so a
+# Merge/Revert exemption never buys an exemption from this one (those exit
+# above; nothing below may become a bypass).
+#
+# Mechanised because memory did not hold it: 28 of 264 commits on main carried
+# the trailer before anyone looked. A rule nothing enforces decays (#575).
+#
+# The pattern is BYTE-IDENTICAL to pre-receive's, pinned by
+# hooks.attribution-parity.test.mjs — one rule, and the two implementations may
+# not drift (#130, #340, #555).
+#
+# VENDOR-NEUTRAL by construction. brain ships into other people's repositories,
+# and the doctrine says "AI attribution", not "one vendor's attribution". A hook
+# that only knew `claude` would enforce the rule for this repo and silently
+# exempt a consumer using any other agent — a confident check over a narrow
+# subject, which is the defect family this repo keeps closing.
+#
+# The agent list is OBSERVED SPELLINGS, not a complete detector; no such list can
+# be complete, and one claiming to be would be apparent protection (#499). The
+# `generated` shape requires the bracket of a markdown link so ordinary prose
+# ("generated with cursor pagination") is not caught — pinned by the corpus.
+# PLATFORM-AGNOSTIC, not merely multi-vendor. A baked list — however broad —
+# always lags: today's agents are not next year's, and for a package that ships
+# into other people's repositories it would mean waiting for a brain RELEASE
+# before a consumer can enforce their own rule against their own tooling.
+#
+# `git config brain.aiAgents` is the override, because git is the one dependency
+# both hooks already have. `pre-receive` is installed into a bare repo as a
+# SINGLE self-contained file (brain-protect-server.mjs copies exactly one), so a
+# sibling data file would never reach the server and brain.config.json is not
+# there to read. A git config key travels with the repository it governs.
+#
+#   git config brain.aiAgents 'claude|opencode|antigravity'
+#
+# The baked default is the fallback, never a floor: an operator who sets the key
+# owns the list completely. Read identically in pre-receive — pinned by
+# hooks.attribution-parity.test.mjs.
+AI_AGENTS=$(git config --get brain.aiAgents 2>/dev/null)
+[ -z "$AI_AGENTS" ] && AI_AGENTS='claude|copilot|chatgpt|gpt|gemini|cursor|devin|codex|aider|windsurf'
+AI_ATTRIBUTION_RE="co-authored-by:[[:space:]]*($AI_AGENTS)|($AI_AGENTS)-session:|generated[[:space:]]+(with|by)[[:space:]]*\[($AI_AGENTS)|🤖"
+if echo "$msg" | grep -qiE "$AI_ATTRIBUTION_RE"; then
+  echo ""
+  echo "✗ commit-msg: AI attribution is prohibited in commits."
+  echo "  agent-authorities.md Tier 3 — never, even if explicitly asked."
+  echo ""
+  echo "  A 'Co-Authored-By:' trailer is an unverifiable identity claim written"
+  echo "  into permanent history, and a session URL is a dead link for every"
+  echo "  reader outside this machine. Provenance is not authorship: record it"
+  echo "  where a runner can attest to it, not where the author asserts it."
+  echo ""
+  echo "  Remove the trailer(s) and commit again."
+  echo ""
+  exit 1
+fi
+
+# ── 3. Ticket reference ──────────────────────────────────────────────────────
+# Release commits (chore(release), cut by the release flow) and memory syncs
+# (chore(memory), written by memory-lane tooling) are machine-generated and carry no
+# ticket — exempt them from the ref requirement. Format is still enforced above.
+case "$msg" in
+  chore\(release\)*|chore\(memory\)*) exit 0 ;;
+esac
+
+# A repository with no commit at all has no issues yet: its adoption commit
+# cannot cite one. Same condition as pre-commit's check 0 (#1112), shared via
+# one helper (#1161). Format (1) and attribution (2) were already enforced above.
+brain_repo_has_no_commit() { return 1; }
+[ -f "$(dirname "$0")/no-commit-yet.sh" ] && . "$(dirname "$0")/no-commit-yet.sh"
+if brain_repo_has_no_commit; then
+  echo "✓ commit-msg: the repository has no commit yet, so there is no ticket to reference; allowing this commit without #N (issue #1161)."
+  exit 0
+fi
+
+if ! echo "$msg" | grep -qE '#[0-9]+'; then
+  echo ""
+  echo "✗ commit-msg: message must reference a ticket (#N)."
+  echo "  Example: feat(auth): add JWT validation (#42)"
+  echo "           or add 'Closes #N' in the commit body."
+  echo ""
+  exit 1
+fi
+
+exit 0

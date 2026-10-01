@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "gh auth status",
+    "date": "2026-07-30",
+    "recorded": true,
+    "note": "Recorded from a real, non-mutating `gh auth status` invocation in the development sandbox (gh version 2.46.0). authCheck's return value depends only on the exit status (r.status === 0) -- the stdout/stderr text below is preserved as real evidence of a live invocation but is not itself parsed or asserted on by github.mjs#authCheck. gh 2.46.0 writes the human-readable summary to stdout; stderr is empty on a successful check."
+  },
+  "status": 0,
+  "stdout": "github.com\n  ✓ Logged in to github.com account csrinaldi (keyring)\n  - Active account: true\n  - Git operations protocol: https\n  - Token: gho_************************************\n  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'\n",
+  "stderr": ""
+}

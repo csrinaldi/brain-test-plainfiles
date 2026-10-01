@@ -1,0 +1,9 @@
+{
+  "_provenance": {
+    "endpoint": "gh api --paginate repos/x/y/commits/deadbeef/pulls",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "Hand-authored: a commit that is not part of any pull request's history returns a definitively empty array from GitHub's REST list-pull-requests-associated-with-a-commit endpoint — [], never null (that is the failure fixture's job)."
+  },
+  "data": []
+}

@@ -1,0 +1,9 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/pulls?state=open&per_page=100",
+    "date": "2026-07-29",
+    "derived": true,
+    "note": "A zero-open-PR repo cannot be reliably produced on demand against a live target — hand-authored to exercise github.mjs#mrList's empty-array path. `board.mjs`/`queue.mjs` iterate the result unguarded, so `[]` (never `null`) is the contractual requirement being pinned."
+  },
+  "data": []
+}

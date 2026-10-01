@@ -1,0 +1,13 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/{project}/actions/runs?branch={ref}",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "Hand-authored from the documented GitHub Actions 'List workflow runs for a repository' response shape. Exercises the 'no run found' branch: the branch has runs, but none for the target workflow (governance.yml) — rerunWorkflowRun must degrade to { ok: false, reason }, never throw or fabricate a run id."
+  },
+  "data": {
+    "workflow_runs": [
+      { "id": 1, "path": ".github/workflows/release.yml", "head_branch": "fix/issue-328-x" }
+    ]
+  }
+}

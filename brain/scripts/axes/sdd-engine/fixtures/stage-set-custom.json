@@ -1,0 +1,16 @@
+{
+  "_provenance": {
+    "derived": true,
+    "endpoint": "n/a — hand-authored config fixture, no API to record a stage set from",
+    "date": "2026-08-31"
+  },
+  "sdd": {
+    "stages": {
+      "proposal": {},
+      "spec": {},
+      "design": {},
+      "tasks": {},
+      "cold-review": { "artefact": "cold-review.md" }
+    }
+  }
+}

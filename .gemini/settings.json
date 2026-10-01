@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const cmd = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).tool_input?.command ?? ''; if (/--no-verify/.test(cmd) || /\\bgit commit\\b[^|&\\n]*\\s+-n\\b/.test(cmd)) { process.stderr.write('\\n[brain:hook] BLOCKED: --no-verify / git commit -n bypasses governance hooks.\\nSee ADR-0014 §9. Fix the hook that is causing the false-positive instead.\\n'); process.exit(2); }\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run brain:session:start"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npm run brain:memory:session-end"
+          }
+        ]
+      }
+    ]
+  }
+}

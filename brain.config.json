@@ -1,0 +1,51 @@
+{
+  "governance": {
+    "tier": "lite",
+    "ignoreList": [
+      ".memory/**",
+      "openspec/changes/**",
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      "yarn.lock"
+    ],
+    "memorySecretPatterns": [
+      "ghp_[A-Za-z0-9]{20,}",
+      "github_pat_[A-Za-z0-9_]{20,}",
+      "glpat-[A-Za-z0-9_-]{20,}",
+      "AKIA[0-9A-Z]{16}",
+      "-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    ],
+    "memorySecretAllowPatterns": [],
+    "approvedLabel": "status:approved"
+  },
+  "project": {
+    "name": "",
+    "slug": "csrinaldi/brain-test-plainfiles",
+    "gitHost": "github.com",
+    "gitProjectId": "",
+    "owner": ""
+  },
+  "docs": {
+    "language": "en"
+  },
+  "vcs": {
+    "provider": "github"
+  },
+  "reviewer": {
+    "handle": "",
+    "tokenEnv": "BRAIN_REVIEWER_TOKEN"
+  },
+  "sdd": {
+    "map": {},
+    "stages": {},
+    "configs": {},
+    "engines": {}
+  },
+  "memory": {
+    "lane": {
+      "enabled": false
+    },
+    "backend": "plainfiles"
+  },
+  "schemaVersion": "1.9.1"
+}

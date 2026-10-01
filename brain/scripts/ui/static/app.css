@@ -1,0 +1,1388 @@
+/*
+ * app.css — the page's whole stylesheet (#881 PR 4 / B2). No framework, no
+ * CDN, no build step (maintainer ruling, 2026-09-14): one file, served by
+ * `server.mjs` at `/app.css`.
+ *
+ * The node classes below are the OUTPUT of `lib/colour.mjs` — that module
+ * owns which class a node gets, this file owns what the class looks like.
+ * Every class `colour.mjs` can return has a rule here, plus `.node-unknown`
+ * for the one case `colour.mjs` refuses to map (it throws by design; the
+ * renderer catches per node so one unknown state cannot blank the canvas).
+ */
+
+:root {
+  /* ── the token block (#998 R998-1). Light is the BASE: every token is
+     defined here; the dark palette below redefines the same names and
+     nothing else, so a token never has its only definition in a media
+     query. The values here are the page's colours before #998, unchanged. */
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* #1059 phase 1: the light palette is the design's own slate ramp read for a
+     light ground (#0f172a → #64748b), not the page's pre-#998 greys. The dark
+     block below already carried the design's values; light never did, so a
+     viewer whose system is light saw a different page from the one designed. */
+  --ink: #0f172a;
+  --muted: #52617a;
+  --line: #d3dae6;
+  --paper: #f7f8fb;
+  --surface: #ffffff;
+  --warn: #92600e;
+  --warn-bg: #fdf3dc;
+  --stamp: #64748b;
+  --surface-active: #e8edf6;
+  --edge: #94a3b8;
+  --node-stroke: #64748b;
+  /* The accent the design spends on what is live and what is tracked. It is
+     never the only carrier of a state — every state keeps its word and its
+     mark (R998-1) — so this is emphasis, not meaning. */
+  --accent: #0e7490;
+  --accent-quiet: #cffafe;
+  --live: #047857;
+  /* one fg/bg pair per state of lib/state-vocab.mjs; the class each state
+     paints is the state's className, and the rule for it reads the pair */
+  --state-planned-fg: #1b1b1f;        --state-planned-bg: #eef1f8;
+  --state-in-flight-fg: #1b1b1f;      --state-in-flight-bg: #d8ecff;
+  --state-done-fg: #1b1b1f;           --state-done-bg: #d9f2e0;
+  --state-blocked-fg: #1b1b1f;        --state-blocked-bg: #ffd9d4;
+  --state-awaiting-review-fg: #1b1b1f; --state-awaiting-review-bg: #ffe9b8;
+  --state-unclassified-fg: #1b1b1f;     --state-unclassified-bg: #ececf2;
+  --state-unreadable-fg: #1b1b1f;     --state-unreadable-bg: #f3e3f6;
+  --state-not-computed-fg: #1b1b1f;   --state-not-computed-bg: #ffffff;
+  --state-unknown-fg: #8a4b00;        --state-unknown-bg: #ffffff;
+  /* one fg/bg pair per severity `reviewer-protocol.md` §6.1/6.2 declares
+     (blocker | correction | editorial), plus `unknown` for any other string
+     a finding may carry — R998-5: an unrecognized severity is still said in
+     full, in text, never dropped; only its colour falls back to this pair. */
+  --severity-blocker-fg: #8a1f11;     --severity-blocker-bg: #ffd9d4;
+  --severity-correction-fg: #1b1b1f;  --severity-correction-bg: #ffe9b8;
+  --severity-editorial-fg: #1b1b1f;   --severity-editorial-bg: #ececf2;
+  --severity-unknown-fg: #8a4b00;     --severity-unknown-bg: #ffffff;
+  /* "the data disagrees with itself" (#882 D6): the Roadmap view's
+     parent-grammar/parent-ambiguous/parent-not-epic warnings and, from PR 2
+     on, the Decisions view's drift warnings — one shared visual language,
+     distinct from --severity-*, which is about review findings. */
+  --divergence-fg: #6b21a8;           --divergence-bg: #f3e8ff;
+}
+
+/* The design's dark palette (Claude Design "Brain UI implementation
+   proposal"): followed when the system prefers dark, never persisted. */
+/* #1059 phase 8: the viewer has THREE states, not two. An explicit choice
+   stamps `data-theme` on the document; the default, "system", stamps nothing
+   and the media query decides. So the media query is guarded — an explicit
+   light must beat a dark operating system — and each stamp redefines the same
+   token names again, so the choice wins in both directions. No token is ever
+   defined for the first time inside one of these blocks. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ink: #f1f5f9;
+    --muted: #94a3b8;
+    --line: rgba(255, 255, 255, 0.08);
+    --paper: #0b0f17;
+    --surface: #141b2d;
+    --accent: #22d3ee;
+    --accent-quiet: #083344;
+    --live: #34d399;
+    --warn: #fbbf24;
+    --warn-bg: #2d1f03;
+    --stamp: #64748b;
+    --surface-active: #1e293b;
+    --edge: #475569;
+    --node-stroke: #64748b;
+    --state-planned-fg: #64748b;        --state-planned-bg: #1e293b;
+    --state-in-flight-fg: #06b6d4;      --state-in-flight-bg: #083344;
+    --state-done-fg: #6366f1;           --state-done-bg: #1e1b4b;
+    --state-blocked-fg: #fb7185;        --state-blocked-bg: #4c0519;
+    --state-awaiting-review-fg: #f59e0b; --state-awaiting-review-bg: #451a03;
+    --state-unclassified-fg: #d97706;     --state-unclassified-bg: #2d1f03;
+    --state-unreadable-fg: #d946ef;     --state-unreadable-bg: #3b0764;
+    --state-not-computed-fg: #475569;   --state-not-computed-bg: #0f172a;
+    --state-unknown-fg: #fbbf24;        --state-unknown-bg: #0f172a;
+    --severity-blocker-fg: #fb7185;     --severity-blocker-bg: #4c0519;
+    --severity-correction-fg: #f59e0b;  --severity-correction-bg: #451a03;
+    --severity-editorial-fg: #94a3b8;   --severity-editorial-bg: #1e293b;
+    --severity-unknown-fg: #fbbf24;     --severity-unknown-bg: #0f172a;
+    --divergence-fg: #d8b4fe;           --divergence-bg: #2e1065;
+  }
+}
+
+:root[data-theme='dark'] {
+    --ink: #f1f5f9;
+    --muted: #94a3b8;
+    --line: rgba(255, 255, 255, 0.08);
+    --paper: #0b0f17;
+    --surface: #141b2d;
+    --accent: #22d3ee;
+    --accent-quiet: #083344;
+    --live: #34d399;
+    --warn: #fbbf24;
+    --warn-bg: #2d1f03;
+    --stamp: #64748b;
+    --surface-active: #1e293b;
+    --edge: #475569;
+    --node-stroke: #64748b;
+    --state-planned-fg: #64748b;        --state-planned-bg: #1e293b;
+    --state-in-flight-fg: #06b6d4;      --state-in-flight-bg: #083344;
+    --state-done-fg: #6366f1;           --state-done-bg: #1e1b4b;
+    --state-blocked-fg: #fb7185;        --state-blocked-bg: #4c0519;
+    --state-awaiting-review-fg: #f59e0b; --state-awaiting-review-bg: #451a03;
+    --state-unclassified-fg: #d97706;     --state-unclassified-bg: #2d1f03;
+    --state-unreadable-fg: #d946ef;     --state-unreadable-bg: #3b0764;
+    --state-not-computed-fg: #475569;   --state-not-computed-bg: #0f172a;
+    --state-unknown-fg: #fbbf24;        --state-unknown-bg: #0f172a;
+    --severity-blocker-fg: #fb7185;     --severity-blocker-bg: #4c0519;
+    --severity-correction-fg: #f59e0b;  --severity-correction-bg: #451a03;
+    --severity-editorial-fg: #94a3b8;   --severity-editorial-bg: #1e293b;
+    --severity-unknown-fg: #fbbf24;     --severity-unknown-bg: #0f172a;
+    --divergence-fg: #d8b4fe;           --divergence-bg: #2e1065;
+  }
+
+* { box-sizing: border-box; }
+
+/* #1059 phase 2 — the app shell the design draws: a full-height column on the
+   ground colour, so the page IS the application rather than a document that
+   happens to be dark. The chrome (bar, nav, labels, counts) is mono; the
+   content keeps the sans. */
+body {
+  margin: 0;
+  font: 14px/1.45 var(--font-sans);
+  color: var(--ink);
+  background: var(--paper);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── the status bar: the poll indicator and its two controls (R881-4) ───── */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.status-bar .title {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.status-bar .title::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.status-bar .poll-indicator { font-variant-numeric: tabular-nums; }
+.status-bar .poll-indicator.paused { color: var(--warn); }
+.status-bar button {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  border-radius: 5px;
+  font: inherit;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.status-bar .spacer { flex: 1; }
+
+/* #1059 phase 1, design region 01: the bar reads left to right as the design
+   lays it out — what this is, what it serves, whether it is live, when it last
+   polled, what it is working on, how big the graph is — then the controls. The
+   counts use the accent for what IS tracked and the warn token for what
+   declared nothing, which is the design's own emphasis; both keep their words,
+   so the colour is never the carrier. */
+.status-bar .status-live {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--live);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.status-bar .status-live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--live);
+}
+.status-bar .status-epic { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.status-bar .status-epic-reason { font-size: 11px; color: var(--stamp); max-width: 46ch; }
+.status-bar .status-counts {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.status-bar .count-total { color: var(--ink); font-weight: 600; }
+.status-bar .count-tracked { color: var(--accent); font-weight: 600; }
+.status-bar .count-undeclared { color: var(--warn); font-weight: 600; }
+.status-bar .count-sep { color: var(--stamp); }
+
+/* ── the modes nav: the four buttons of lib/view-model.mjs (#998 R998-2) ── */
+
+.modes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+.modes .mode-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.modes .mode-glyph { color: var(--stamp); }
+.modes button[aria-current='page'] .mode-glyph { color: var(--accent); }
+.modes .mode-count { color: var(--stamp); }
+.modes .mode-keys {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--stamp);
+}
+.modes .mode-key { display: inline-flex; align-items: baseline; gap: 5px; }
+.modes kbd {
+  font-family: inherit;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+.modes button {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.modes button:hover { color: var(--ink); border-color: var(--edge); }
+.modes button[aria-current='page'] {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-quiet);
+}
+.modes button[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--surface-active);
+}
+
+/* ── the governance sub-nav: the five buttons of lib/governance-model.mjs
+   (#882 R882-1) — same idiom as .modes above, one level down ───────────── */
+
+.governance-nav[hidden] { display: none; }
+.governance-nav {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  display: flex;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.governance-nav button {
+  font: inherit;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.governance-nav button[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--surface-active);
+}
+
+/* ── the Roadmap view (#882 R882-2): per-epic status grouping, no
+   timeline — each epic's row, its children nested under it, the unlinked
+   bucket last (rule zero: a node with no epic parent is never dropped) ── */
+
+.roadmap-epic { margin-bottom: 14px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.roadmap-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; flex-wrap: wrap; }
+.roadmap-epic-row { background: var(--surface); border-bottom: 1px solid var(--line); font-weight: 600; }
+.roadmap-children { padding: 2px 0; }
+.roadmap-children .said { margin: 6px 10px; }
+.roadmap-child-row { padding-left: 24px; }
+.roadmap-unlinked { margin-bottom: 14px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 6px; }
+.roadmap-unlinked h3 { margin: 0 0 6px; font-size: 13px; }
+.roadmap-title { flex: 1; }
+.roadmap-blocked { font-size: 11px; color: var(--warn); }
+.roadmap-state-reason { font-size: 11px; color: var(--warn); }
+.roadmap-divergence { font-size: 11px; padding: 1px 6px; border-radius: 4px; color: var(--divergence-fg); background: var(--divergence-bg); }
+.roadmap-state { font-size: 11px; padding: 1px 6px; border-radius: 4px; }
+.roadmap-state.state-planned { color: var(--state-planned-fg); background: var(--state-planned-bg); }
+.roadmap-state.state-in-flight { color: var(--state-in-flight-fg); background: var(--state-in-flight-bg); }
+.roadmap-state.state-done { color: var(--state-done-fg); background: var(--state-done-bg); }
+.roadmap-state.status-blocked { color: var(--state-blocked-fg); background: var(--state-blocked-bg); }
+.roadmap-state.status-awaiting-review { color: var(--state-awaiting-review-fg); background: var(--state-awaiting-review-bg); }
+.roadmap-state.status-unclassified { color: var(--state-unclassified-fg); background: var(--state-unclassified-bg); }
+.roadmap-state.status-unreadable { color: var(--state-unreadable-fg); background: var(--state-unreadable-bg); }
+.roadmap-state.roadmap-not-computed { color: var(--state-not-computed-fg); background: var(--state-not-computed-bg); }
+.roadmap-state.node-unknown { color: var(--state-unknown-fg); background: var(--state-unknown-bg); }
+
+/* ── the Decisions view (#882 R882-3): the ADR table, sorted by number, an
+   unreadable ADR kept as its own row — sorted last — and drift warnings
+   riding beside the table, never instead of it ── */
+
+.decision-row { margin-bottom: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
+.decision-title { display: block; }
+.decision-status { display: inline-block; margin-top: 4px; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--surface); color: var(--muted); }
+.decision-amendments { margin: 6px 0 0 18px; padding: 0; font-size: 12px; }
+.decision-issues, .decision-supersedes, .decision-superseded-by { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.decision-drift { margin-top: 10px; padding: 8px 10px; border: 1px dashed var(--divergence-fg); border-radius: 6px; background: var(--divergence-bg); }
+.decision-drift .said { margin: 0; color: var(--divergence-fg); }
+.decision-drift .said-list { margin: 6px 0 0 18px; padding: 0; color: var(--divergence-fg); }
+
+/* ── the Anti-patterns view (#882 R882-4): the catalogue, core before
+   project, an unreadable entry kept as its own row — sorted last — and an
+   unlistable scope said beside the other scope's real rows ── */
+
+.anti-pattern-row { margin-bottom: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
+.anti-pattern-scope { display: inline-block; margin-right: 6px; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--surface); color: var(--muted); }
+.anti-pattern-title { display: inline-block; }
+.anti-pattern-issues { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+.anti-pattern-unlistable { margin-top: 10px; padding: 8px 10px; border: 1px dashed var(--divergence-fg); border-radius: 6px; background: var(--divergence-bg); }
+.anti-pattern-unlistable .said { margin: 0; color: var(--divergence-fg); }
+.anti-pattern-unlistable .said-list { margin: 6px 0 0 18px; padding: 0; color: var(--divergence-fg); }
+
+/* ── the History view (#882 R882-5): merges, releases and ADR amendments,
+   newest first — review verdicts are deliberately excluded, linked to the
+   Reviews mode instead ── */
+
+.history-event { margin-bottom: 10px; padding: 6px 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; }
+.history-kind { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--surface); color: var(--muted); text-transform: uppercase; }
+.history-date { font-size: 11px; color: var(--muted); }
+.history-title { flex: 1; }
+.history-reviews-link { margin-top: 10px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 6px; }
+.history-reviews-link .said { margin: 0 0 6px; }
+
+/* ── the By actor view (#882 R882-6): one row per actor, humans and agents
+   in the same table under the same schema — no colour ever ranks a row,
+   this section carries no severity-like palette ── */
+
+.actor-row { margin-bottom: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
+.actor-name { display: inline-block; }
+.actor-kind { display: inline-block; margin-left: 6px; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--surface); color: var(--muted); }
+.actor-records, .actor-reviews, .actor-prs-merged { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+
+/* ── the degradation bands: never a blank area, always a said reason ───── */
+
+.banners:empty { display: none; }
+.band {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+/* ── the canvas ────────────────────────────────────────────────────────── */
+
+.canvas { padding: 18px 20px; overflow: auto; flex: 1; }
+.canvas .said { margin: 0 0 10px; color: var(--warn); }
+.canvas .said-list { margin: 0 0 10px 18px; color: var(--warn); padding: 0; }
+
+.edge { stroke: var(--edge); stroke-width: 1.4; fill: none; }
+.edge.reversed { stroke-dasharray: 5 4; }
+
+.node { cursor: pointer; }
+.node rect { stroke: var(--node-stroke); stroke-width: 1.2; rx: 6; }
+.node text { font-size: 11px; fill: var(--ink); pointer-events: none; }
+.node .mark { font-size: 10px; fill: var(--warn); }
+.node.selected rect { stroke: var(--ink); stroke-width: 2.4; }
+
+.node.state-planned rect { fill: var(--state-planned-bg); }
+.node.state-in-flight rect { fill: var(--state-in-flight-bg); }
+.node.state-done rect { fill: var(--state-done-bg); }
+.node.status-ready rect { fill: var(--state-planned-bg); } /* never returned by state-vocab; kept so the class stays defined */
+.node.status-blocked rect { fill: var(--state-blocked-bg); }
+.node.status-awaiting-review rect { fill: var(--state-awaiting-review-bg); }
+.node.status-unclassified rect { fill: var(--state-unclassified-bg); stroke-dasharray: 4 3; }
+.node.status-unreadable rect { fill: var(--state-unreadable-bg); stroke-dasharray: 2 2; }
+.node.roadmap-not-computed rect { fill: var(--state-not-computed-bg); stroke-dasharray: 6 3; }
+.node.node-unknown rect { fill: var(--state-unknown-bg); stroke: var(--state-unknown-fg); stroke-dasharray: 1 3; }
+
+/* ── track lanes (#998 R998-3): one row per declared track, the `?`
+   holding lane last — each row owns its own board, so no line is ever
+   drawn ACROSS rows (that would need a shared coordinate space the lanes
+   deliberately do not have; a cross-lane edge is said instead, app.js). */
+
+.lane-row {
+  /* #1059 phase 4: the design gives a lane air — the header is a line above
+     its grid, not a box drawn around it, and the lanes breathe between each
+     other rather than stacking flush. */
+  margin: 0 0 26px;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lane-row.holding { border-style: dashed; }
+.lane-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 0 8px;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.lane-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.lane-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.lane-chips .chip { font-size: 11px; color: var(--muted); }
+.lane-toggle { font: inherit; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); cursor: pointer; }
+.lane-board { display: block; }
+.holding .note { margin: 8px 10px 0; }
+.holding pre { margin: 8px 10px; padding: 8px; background: var(--paper); border: 1px solid var(--line); border-radius: 4px; font: 12px/1.4 var(--font-mono); overflow: auto; }
+.holding-list { list-style: none; margin: 0; padding: 4px 10px 8px; font-size: 12px; }
+.holding-list li { padding: 2px 0; }
+.pager { display: flex; align-items: center; gap: 8px; padding: 6px 10px; }
+
+/* ── the SDD view (#998 R998-4): one row per change, seven stage cells ──── */
+
+.sdd-row { margin-bottom: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
+.sdd-row-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.sdd-archived-heading { margin: 18px 0 8px; color: var(--muted); }
+.sdd-matrix { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.sdd-stage { font-size: 11px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
+.sdd-stage-present, .sdd-stage-done { color: var(--ink); border-color: var(--ink); }
+.sdd-stage-in-progress { color: var(--warn); border-color: var(--warn); }
+.sdd-tasks { margin: 0; color: var(--muted); font-size: 12px; }
+
+/* ── the reviews view (#998 R998-5): the verdict queue, then one card per
+   PR thread — rounds oldest first, findings grouped by severity ───────── */
+
+.review-queue { margin-bottom: 14px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 6px; }
+.review-queue h3 { margin: 0 0 6px; font-size: 13px; }
+.queue-list { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+.queue-list li { padding: 2px 0; }
+.review-card { margin-bottom: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; }
+.review-round { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.review-round-head { margin: 0 0 6px; font-size: 12px; }
+.severity-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.severity-chip { font-size: 11px; padding: 2px 6px; border-radius: 4px; color: var(--severity-unknown-fg); background: var(--severity-unknown-bg); }
+.severity-chip.severity-blocker { color: var(--severity-blocker-fg); background: var(--severity-blocker-bg); }
+.severity-chip.severity-correction { color: var(--severity-correction-fg); background: var(--severity-correction-bg); }
+.severity-chip.severity-editorial { color: var(--severity-editorial-fg); background: var(--severity-editorial-bg); }
+.finding { margin: 4px 0; font-size: 12px; }
+.finding p { margin: 2px 0 0; color: var(--muted); }
+
+/* ── the inspector drawer: four tabs, every value with its source ───────── */
+
+/* #1059 region 08: the design's panel — a sibling of the content, not an
+   overlay on top of it. On a phone it takes the whole width and the content
+   scrolls behind it, which is the only way 470px and 390px can both be true. */
+.workspace { display: flex; flex: 1; min-height: 0; align-items: stretch; }
+.drawer {
+  width: min(470px, 100%);
+  flex: none;
+  overflow: auto;
+  padding: 0;
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+}
+@media (max-width: 760px) {
+  .workspace { flex-direction: column; }
+  .drawer { width: 100%; border-left: 0; border-top: 1px solid var(--line); }
+}
+.drawer[hidden] { display: none; }
+.drawer h2 { margin: 0 0 8px; font-size: 16px; }
+.drawer .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.drawer .tabs button[aria-selected='true'] { background: var(--surface-active); font-weight: 600; }
+.drawer .card {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.drawer .card.pending { border-style: dashed; }
+.drawer .source { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); word-break: break-all; }
+.drawer .source-chip { margin-left: 6px; font-size: 11px; color: var(--stamp); }
+.drawer .said { color: var(--warn); }
+.drawer .note { color: var(--muted); font-size: 12px; }
+.drawer .close { float: right; }
+
+
+/* ── #1059 region 03: the lanes as the design draws them ──────────────────
+   A lane is a header and a grid of cards, not a drawn graph. The edges the
+   board used to draw are words on the card that waits ("blocked by #N") and
+   the said lists below, which is where the cross-lane ones already were. */
+.clustering-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.clustering-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.clustering-label, .legend-label { color: var(--stamp); }
+.clustering-note { color: var(--stamp); }
+.clustering-choice {
+  font: inherit;
+  padding: 3px 9px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.clustering-choice[aria-current='true'] {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-quiet);
+}
+.clustering-choice:disabled { cursor: not-allowed; opacity: 0.55; }
+
+.legend { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; color: var(--muted); }
+.legend-item { display: inline-flex; align-items: baseline; gap: 5px; }
+.legend-mark { font-weight: 600; }
+
+.lane-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+.node-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.node-card:hover { border-color: var(--edge); }
+.node-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.node-card.selected {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.node-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.node-number { color: var(--muted); font-weight: 600; }
+.node-card.selected .node-number { color: var(--accent); font-weight: 700; }
+.node-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+}
+.node-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.node-blocked {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--warn);
+}
+.node-card .said { margin: 0; font-size: 11px; }
+
+.node-state.state-planned, .legend-item.state-planned { color: var(--state-planned-fg); }
+.node-state.state-planned { background: var(--state-planned-bg); }
+.node-state.state-in-flight, .legend-item.state-in-flight { color: var(--state-in-flight-fg); }
+.node-state.state-in-flight { background: var(--state-in-flight-bg); }
+.node-state.state-done, .legend-item.state-done { color: var(--state-done-fg); }
+.node-state.state-done { background: var(--state-done-bg); }
+.node-state.state-blocked, .legend-item.state-blocked { color: var(--state-blocked-fg); }
+.node-state.state-blocked { background: var(--state-blocked-bg); }
+.node-state.state-awaiting-review, .legend-item.state-awaiting-review { color: var(--state-awaiting-review-fg); }
+.node-state.state-awaiting-review { background: var(--state-awaiting-review-bg); }
+.node-state.state-unclassified, .legend-item.state-unclassified { color: var(--state-unclassified-fg); }
+.node-state.state-unclassified { background: var(--state-unclassified-bg); }
+.node-state.state-unreadable, .legend-item.state-unreadable { color: var(--state-unreadable-fg); }
+.node-state.state-unreadable { background: var(--state-unreadable-bg); }
+.node-state.state-not-computed, .legend-item.state-not-computed { color: var(--state-not-computed-fg); }
+.node-state.state-not-computed { background: var(--state-not-computed-bg); }
+.node-state.state-unknown, .legend-item.state-unknown { color: var(--state-unknown-fg); }
+.node-state.state-unknown { background: var(--state-unknown-bg); }
+
+
+/* The strip at the foot of a card: what stage the change reached, its tasks,
+   and where it lives (#1059 phase 4). */
+.node-sdd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--stamp);
+}
+.node-sdd-label { color: var(--accent); font-weight: 600; }
+.node-sdd-stage { color: var(--muted); }
+.node-sdd-tasks { color: var(--muted); font-variant-numeric: tabular-nums; }
+.node-sdd-dir { color: var(--stamp); word-break: break-all; }
+.node-sdd-none { color: var(--stamp); }
+
+
+/* ── #1059 region 04: the undeclared batch ────────────────────────────────
+   Not a lane — a panel that states the proportion, shows what to paste, and
+   lists the issues as tiles with the rest counted. */
+.batch {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  margin-bottom: 26px;
+}
+.batch-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.batch-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.batch-mark { color: var(--warn); font-weight: 700; }
+.batch-word { color: var(--warn); font-weight: 700; }
+.batch-count { color: var(--muted); }
+.batch-declare {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.batch-declare-label { color: var(--stamp); }
+.batch-declare code {
+  color: var(--accent);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.batch-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+}
+.batch-tile {
+  padding: 9px 10px;
+  border-radius: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.batch-tile:hover { border-color: var(--edge); }
+.batch-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.batch-tile-number { font-family: var(--font-mono); font-size: 11px; color: var(--ink); font-weight: 600; }
+.batch-tile-title {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.batch-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--stamp);
+}
+.batch-rest { color: var(--muted); }
+
+
+/* ── #1059 region 05: the verdict queue as a table ────────────────────────
+   Its own scroller, so a narrow screen scrolls the table and never the page. */
+.table-scroller {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.queue-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.queue-table thead tr { background: var(--surface); color: var(--stamp); text-align: left; }
+.queue-table th {
+  padding: 9px 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-align: left;
+  white-space: nowrap;
+}
+.queue-table td { padding: 9px 12px; color: var(--muted); vertical-align: top; }
+.queue-table tbody tr { border-top: 1px solid var(--line); }
+.queue-table tbody tr.openable { cursor: pointer; }
+.queue-table tbody tr.openable:hover { background: var(--surface); }
+.queue-table tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.queue-pr { color: var(--accent); font-weight: 700; }
+.queue-issue { color: var(--ink); }
+.queue-rounds { font-variant-numeric: tabular-nums; }
+.queue-head { color: var(--muted); }
+.queue-wait { color: var(--warn); }
+.queue-none { color: var(--stamp); }
+.queue-verdict {
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid;
+  font-weight: 600;
+}
+.queue-verdict.verdict-approve { color: var(--state-done-fg); background: var(--state-done-bg); border-color: var(--state-done-fg); }
+.queue-verdict.verdict-revise { color: var(--state-awaiting-review-fg); background: var(--state-awaiting-review-bg); border-color: var(--state-awaiting-review-fg); }
+.queue-verdict.verdict-stop { color: var(--state-blocked-fg); background: var(--state-blocked-bg); border-color: var(--state-blocked-fg); }
+.queue-row.escalate .queue-wait { color: var(--state-blocked-fg); font-weight: 600; }
+.queue-note { margin: 0 0 10px; color: var(--stamp); font-size: 12px; }
+
+
+/* ── #1059 region 06: governance as tables ────────────────────────────────
+   Same anatomy as the queue's table, so the three read as one family. */
+.decisions-table, .anti-patterns-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.decisions-table thead tr, .anti-patterns-table thead tr {
+  background: var(--surface);
+  color: var(--stamp);
+  font-family: var(--font-mono);
+}
+.decisions-table th, .anti-patterns-table th {
+  padding: 9px 12px;
+  font-weight: 500;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.decisions-table td, .anti-patterns-table td {
+  padding: 10px 12px;
+  color: var(--muted);
+  vertical-align: top;
+  border-top: 1px solid var(--line);
+}
+.decision-number {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.decision-title, .anti-pattern-title { color: var(--ink); }
+.decision-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.decision-status.status-accepted { color: var(--state-done-fg); }
+.decision-status.status-superseded, .decision-status[class*='superseded'] { color: var(--stamp); }
+.decision-amendment { margin: 0 0 4px; font-size: 11.5px; }
+.decision-amendment:last-child { margin-bottom: 0; }
+.decision-none { color: var(--stamp); }
+.decision-supersedes, .decision-superseded-by, .decision-issues {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--stamp);
+}
+.decision-unreadable, .anti-pattern-unreadable { color: var(--warn); }
+.anti-pattern-scope {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.anti-pattern-issues .source { margin-right: 6px; }
+.anti-pattern-file, .decision-file { font-size: 11px; }
+
+
+/* ── #1059 region 08: the drawer as the design's panel ────────────────────*/
+.drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+}
+.drawer-id { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-family: var(--font-mono); font-size: 11px; }
+.drawer-number { color: var(--accent); font-weight: 700; font-size: 12px; }
+.drawer-track { color: var(--stamp); }
+.drawer-forge { color: var(--accent); text-decoration: none; }
+.drawer-forge:hover { text-decoration: underline; }
+.drawer .close {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.drawer-title {
+  margin: 0;
+  padding: 12px 16px 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.drawer .tabs, .drawer > .note, .drawer > .said, .drawer > div { padding-left: 16px; padding-right: 16px; }
+.drawer .tabs { padding-top: 12px; flex-wrap: wrap; }
+.drawer .tabs button {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 9px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.drawer .tabs button[aria-selected='true'] {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-quiet);
+}
+.stage-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.stage-number {
+  color: var(--stamp);
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4ch;
+}
+.stage-name { color: var(--ink); flex: 1; }
+.stage-mark.done { color: var(--state-done-fg); }
+.stage-mark.missing { color: var(--stamp); }
+
+
+/* #1059 phase 8: the theme control sits with the other chrome in the bar. */
+.theme-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--stamp);
+}
+.theme-choice select {
+  font: inherit;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.theme-choice select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.slice-plan-title {
+  margin: 16px 0 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stamp);
+  font-weight: 500;
+}
+
+
+/* #1059 phase 10: the tickets that belong to the selected one. */
+.drawer-children { padding: 12px 16px 0; }
+.drawer-section-title {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stamp);
+  font-weight: 500;
+}
+.drawer-blocked {
+  margin: 8px 16px 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--warn);
+}
+.child-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.child-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  cursor: pointer;
+}
+.child-row:hover { border-color: var(--edge); }
+.child-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.child-number { font-family: var(--font-mono); font-size: 11px; color: var(--accent); font-weight: 600; }
+.child-title { flex: 1; font-size: 12px; color: var(--ink); }
+
+
+/* #1059 phase 10: the project's declared plan, the design's fourth mode. */
+.plan-change {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.plan-change-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+.plan-issue {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.plan-issue:hover { text-decoration: underline; }
+.plan-archived { font-family: var(--font-mono); font-size: 10px; color: var(--stamp); }
+.plan-slices { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.plan-slice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 12px;
+}
+.plan-slice-n { font-family: var(--font-mono); font-size: 11px; color: var(--muted); min-width: 7ch; }
+.plan-claims { color: var(--ink); }
+.plan-terminal { font-family: var(--font-mono); font-size: 10.5px; color: var(--stamp); }
+
+/* ── the finder (#1059) ──────────────────────────────────────────────────── */
+/* A band of its own between the modes and the bands, because it is neither: a
+   mode is where you are, a band is what went wrong, and this is how you get
+   somewhere. Every colour comes from the token block — there is no literal
+   here, which `tokens.test.mjs` enforces. */
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.search-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+.search-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+.search-count {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.search-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+.search-hit {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  cursor: pointer;
+}
+.search-hit:hover,
+.search-hit:focus {
+  border-color: var(--accent);
+  background: var(--surface-active);
+}
+.search-hit-unreadable { border-style: dashed; }
+.search-hit-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.search-hit-number {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+}
+/* An epic and a tracker are DECLARED, so they are marked — the accent is
+   emphasis here, never the only carrier: the word is printed too. */
+.search-hit-kind {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-quiet);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.search-hit-tracker {
+  font-family: var(--font-mono);
+  color: var(--live);
+}
+.search-hit-track { font-family: var(--font-mono); }
+.search-hit-matched { margin-left: auto; }
+.search-hit-title {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.35;
+}
+@media (max-width: 720px) {
+  .search { padding: 8px 14px; }
+  .search-hit-matched { margin-left: 0; }
+}
+
+/* ── Memory: the .memory/records ledger (#1059) ──────────────────────────── */
+/* A summary band of counts, then the integrity signal, then the rows. Tokens
+   only — no colour literal lives outside the token block. */
+.memory-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+.memory-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 11px;
+}
+.memory-chip-word {
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+.memory-chip-count {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+/* Who wrote a record is a different axis from what it says, so the two chip
+   families are told apart by a fill rather than by their position alone. */
+.memory-chip-actor {
+  background: var(--accent-quiet);
+  border-color: var(--accent-quiet);
+}
+.memory-chip-actor .memory-chip-word { color: var(--accent); }
+
+.memory-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.memory-table th {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.memory-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.memory-when {
+  white-space: nowrap;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.memory-type {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+/* An actor here is almost always a BRANCH, not a person, and a branch name is
+   long. It wraps rather than pushing the table sideways. */
+.memory-actor {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.memory-actor-name {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.memory-actor-kind {
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.memory-id {
+  font-family: var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.memory-source { color: var(--muted); }
+
+/* The file a stage IS, beside its name in the panel's stage strip (#1059). */
+.stage-file {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* SDD documents (#1198): the toggle beneath a stage row and the markdown it
+   opens. Tokens only; table alignment is a class, never an inline style. */
+.doc-toggle {
+  margin-top: 6px;
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.doc-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.doc-body {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+.doc-stamp {
+  margin: 0 0 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--stamp);
+}
+.md p, .md li { line-height: 1.5; }
+.md-heading { margin: 14px 0 6px; font-size: 14px; }
+.md blockquote {
+  margin: 8px 0;
+  padding-left: 10px;
+  color: var(--muted);
+  border-left: 3px solid var(--line);
+}
+.md code { font-family: var(--font-mono); font-size: 12px; }
+.md pre {
+  margin: 8px 0;
+  padding: 8px;
+  overflow-x: auto;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.md table { border-collapse: collapse; margin: 8px 0; }
+.md th, .md td { padding: 3px 8px; border: 1px solid var(--line); }
+.md-align-left { text-align: left; }
+.md-align-center { text-align: center; }
+.md-align-right { text-align: right; }
+.md-literal { font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap; color: var(--muted); }
+.md-inert { color: var(--muted); }
+.md-frontmatter {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+/* Lines the spec grammar could not attach to a scenario (#1067). They are a
+   warning about the file, so they read as one. */
+.orphan-title {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warn);
+}
+
+/* ── epic clusters (#1032) ───────────────────────────────────────────────── */
+/* A cluster is a heading and a grid, not a board: the slices of an epic have
+   no coordinates, so nothing here draws a line between them. Tokens only. */
+.epic-cluster {
+  margin: 0 0 26px;
+}
+.epic-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.epic-head:hover,
+.epic-head:focus {
+  border-bottom-color: var(--accent);
+}
+.epic-number {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--ink);
+}
+.epic-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  flex: 1;
+  min-width: 0;
+}
+.epic-track,
+.epic-count {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.epic-tracker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 10px;
+  font-size: 11px;
+}
+.epic-tracker-label {
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.epic-tracker-branch {
+  font-family: var(--font-mono);
+  color: var(--live);
+}
+/* An epic that declared no tracker is a stated absence, so it reads as one:
+   the warning colour, not a blank space where a branch would be. */
+.epic-tracker-none {
+  color: var(--warn);
+  font-style: italic;
+}
+@media (max-width: 720px) {
+  .epic-title { flex-basis: 100%; }
+}
+
+/* The snippet's caveat, and what the batch is not showing because a cluster
+   already does (#1079). Both are stated facts, so both are visible. */
+.batch-declare-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.batch-elsewhere {
+  font-size: 11px;
+  color: var(--accent);
+}

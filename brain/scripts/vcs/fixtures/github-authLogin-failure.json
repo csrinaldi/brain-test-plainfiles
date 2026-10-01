@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "gh auth login --hostname github.com --with-token",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "Mutating verb, not recordable live (see github-authLogin-happy.json). Hand-authored from gh's documented contract: an invalid/expired token exits non-zero with an explanatory stderr message."
+  },
+  "status": 1,
+  "stdout": "",
+  "stderr": "error validating token: 401 Bad credentials\n"
+}

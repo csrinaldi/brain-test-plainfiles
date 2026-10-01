@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "gh api --paginate repos/x/y/commits/deadbeef/pulls",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "A forced-failure response cannot be recorded from a real API call — hand-authored to exercise github.mjs#commitPrs's not-ok-exit -> null path (mirrors github-prView-failure.json's discipline)."
+  },
+  "throws": true,
+  "error": "gh api repos/x/y/commits/deadbeef/pulls failed (status 1): fixture: simulated failure"
+}

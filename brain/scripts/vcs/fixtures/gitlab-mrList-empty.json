@@ -1,0 +1,9 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests?state=opened&per_page=50",
+    "date": "2026-07-29",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment (record-fixtures.mjs:27-34's standing constraint) — hand-authored to exercise gitlab.mjs#mrList's empty-array path. `board.mjs`/`queue.mjs` iterate the result unguarded, so `[]` (never `null`) is the contractual requirement being pinned, mirroring github-mrList-empty.json."
+  },
+  "data": []
+}

@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/issues?state=open&per_page=100",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "A forced non-zero exit cannot be recorded from a successful API call — hand-authored to exercise runJson's non-zero-exit throw path (exec.mjs:31-32). Neither prView/prReviews/labelEvents/prStatusRollup's never-throws convention nor mrList's caller-agnostic pin applies the same way here: github.mjs#issueList does not wrap the call in a try/catch, and both issueList call sites (tracker-board.mjs's safeList, project-status.mjs's wrapping try/catch) already absorb the throw — pinned as a documented, load-bearing divergence, not fixed here."
+  },
+  "throws": true,
+  "error": "HTTP 404: Not Found (https://api.github.com/repos/x/y/issues)"
+}

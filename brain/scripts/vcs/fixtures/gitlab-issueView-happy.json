@@ -1,0 +1,15 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/issues/:iid",
+    "date": "2026-07-26",
+    "derived": true,
+    "note": "Not reachable from this sandbox (no live GitLab mirror — CP-A3b deferred to the self-hosted phase, same discipline as gitlab-prView-happy.json). Hand-authored from the documented GitLab REST API v4 issue response shape (https://docs.gitlab.com/ee/api/issues.html#single-issue): iid, title, description, labels[], author.username — the subset gitlab.mjs#issueView reads. Uses GitLab's `::` scoped-label form (type::bug) to exercise the provider-aware findTypeLabel matcher (design A3)."
+  },
+  "data": {
+    "iid": 42,
+    "title": "fix: derived fixture example issue",
+    "description": "Details here.",
+    "labels": ["type::bug", "status::approved"],
+    "author": { "id": 7, "username": "alice" }
+  }
+}

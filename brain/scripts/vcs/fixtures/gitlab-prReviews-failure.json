@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests/:iid/notes?order_by=created_at&sort=asc&per_page=100 + GET /projects/:id/merge_requests/:iid/approvals",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "A forced non-ok response cannot be recorded from a successful API call — hand-authored to exercise gitlabApiFetch's `!res.ok` throw (gitlab-api.mjs:65), which gitlab.mjs#prReviews catches and normalizes to null. `null` (uncomputable) must never collapse to a fabricated `[]`: the L6 brain-writes-reviewed gate distinguishes 'nobody approved' from 'could not fetch', and cold-boot's priorVerdicts load does the same for the verdict thread."
+  },
+  "throws": true,
+  "status": 404
+}

@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/pulls?state=open&per_page=100",
+    "date": "2026-07-29",
+    "derived": true,
+    "note": "A forced non-zero exit cannot be recorded from a successful API call — hand-authored to exercise runJson's non-zero-exit throw path (exec.mjs:31-32). Unlike prView/issueView/labelEvents/prStatusRollup, github.mjs#mrList does not wrap the call in a try/catch, so this REJECTS rather than yielding a null-shape (design D3) — pinned as a documented divergence, not fixed here."
+  },
+  "throws": true,
+  "error": "HTTP 404: Not Found (https://api.github.com/repos/x/y/pulls)"
+}

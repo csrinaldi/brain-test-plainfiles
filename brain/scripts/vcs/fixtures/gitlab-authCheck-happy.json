@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "glab auth status --hostname gitlab.com",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "No live glab session is reachable from this environment (the standing constraint documented for every other GitLab fixture in this suite). Hand-authored from glab's documented CLI contract: an authenticated host exits zero with a checkmark summary."
+  },
+  "status": 0,
+  "stdout": "gitlab.com\n  ✓ Logged in to gitlab.com as csrinaldi (oauth2)\n  ✓ Git operations for gitlab.com configured to use https protocol.\n  ✓ API calls for gitlab.com are made over https protocol\n  ✓ Token: glpat-************************\n",
+  "stderr": ""
+}

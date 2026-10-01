@@ -1,0 +1,19 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests/:iid",
+    "date": "2026-07-11",
+    "derived": true,
+    "live_verified": "shape live-verified 2026-07-11 by human curl against the mirror (CP-A3a closing condition) — full field-by-field MATCH: iid/description/labels/author.username, incl. the literal Closes reference in the real MR body. Derived shape was faithful (written from docs sight-unseen).",
+    "note": "Not reachable from this sandbox at authoring time (CP-A3b deferred to the self-hosted phase). Hand-authored from the documented GitLab REST API v4 merge request response shape (https://docs.gitlab.com/ee/api/merge_requests.html#get-single-mr): iid, description, labels[], author.username — the subset gitlab.mjs#prView reads. Shape since confirmed live (see live_verified)."
+  },
+  "data": {
+    "iid": 42,
+    "title": "feat: derived fixture example MR",
+    "description": "Closes #10\n\nDetails here.",
+    "labels": ["size:exception", "kind:feature"],
+    "author": { "id": 42, "username": "alice" },
+    "source_branch": "feat/example",
+    "target_branch": "main",
+    "web_url": "https://gitlab.example.com/g/r/-/merge_requests/42"
+  }
+}

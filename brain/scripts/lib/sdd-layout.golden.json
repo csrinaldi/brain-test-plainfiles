@@ -1,0 +1,804 @@
+{
+  "_header": "point-in-time migration proof over the frozen 28; new dirs out of scope by design",
+  "_capturedAtBase": "46df83b4c3c2fb9387dca378cf867fea164e044c",
+  "_frozenCount": 28,
+  "changes": {
+    "auto-adrs": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "auto-adrs"
+        ],
+        "specsWithSpecMd": [
+          "auto-adrs"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "cli-i18n": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": [
+          {
+            "rule": "A",
+            "level": "exempt",
+            "change": "cli-i18n",
+            "message": "openspec/changes/cli-i18n: implementation without spec.md/design.md — pre-v3 baseline exemption (REQ-L4-5): known, not failing in detection mode."
+          }
+        ]
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "feature-working-memory": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "feature-working-memory"
+        ],
+        "specsWithSpecMd": [
+          "feature-working-memory"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": true
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": true
+      }
+    },
+    "governance": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "governance"
+        ],
+        "specsWithSpecMd": [
+          "governance"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "install-home-scaffold": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "home-index",
+          "home-scaffold"
+        ],
+        "specsWithSpecMd": [
+          "home-index",
+          "home-scaffold"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "installer-versionado": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": false,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": [
+          {
+            "rule": "A",
+            "level": "exempt",
+            "change": "installer-versionado",
+            "message": "openspec/changes/installer-versionado: implementation without spec.md/design.md — pre-v3 baseline exemption (REQ-L4-5): known, not failing in detection mode."
+          }
+        ]
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-121-adopt-existing-repo": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-137-brain-namespace": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-138-session-start": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "session-start"
+        ],
+        "specsWithSpecMd": [
+          "session-start"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-144-governance-v3": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "governance-v3"
+        ],
+        "specsWithSpecMd": [
+          "governance-v3"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-193-ci-context-design": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "ci-context"
+        ],
+        "specsWithSpecMd": [
+          "ci-context"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-196-ci-context-impl": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "ci-context"
+        ],
+        "specsWithSpecMd": [
+          "ci-context"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-201-memory-format": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-203-checkcontexts-fix": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-205-memory-format-lib": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-214-secret-scrub-idintegrity": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-217-engram-records-migration": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-219-migrate-v1": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-221-c2b1-machinery": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-222-c2b2-cutover": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-229-c4": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-231-a2": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-239-a3": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-244-a4": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-246-c3": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "issue-250-b0": {
+      "facts": {
+        "proposal": true,
+        "specFlat": true,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "managed-paths-namespace": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": true,
+        "specsEntries": [
+          "managed-paths-namespace"
+        ],
+        "specsWithSpecMd": [
+          "managed-paths-namespace"
+        ],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": []
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    },
+    "vcs-adapter": {
+      "facts": {
+        "proposal": true,
+        "specFlat": false,
+        "specsDirExists": false,
+        "specsEntries": [],
+        "specsWithSpecMd": [],
+        "design": true,
+        "tasks": true,
+        "resume": false
+      },
+      "checkRefs": {
+        "missing": []
+      },
+      "phaseOrder": {
+        "level": "pass",
+        "findings": [
+          {
+            "rule": "A",
+            "level": "exempt",
+            "change": "vcs-adapter",
+            "message": "openspec/changes/vcs-adapter: implementation without spec.md/design.md — pre-v3 baseline exemption (REQ-L4-5): known, not failing in detection mode."
+          }
+        ]
+      },
+      "featureResolution": {
+        "hasResume": false
+      }
+    }
+  },
+  "sessionStart": {
+    "issue-121": {
+      "token": "issue-121",
+      "matches": [
+        "issue-121-adopt-existing-repo"
+      ]
+    },
+    "issue-137": {
+      "token": "issue-137",
+      "matches": [
+        "issue-137-brain-namespace"
+      ]
+    },
+    "issue-138": {
+      "token": "issue-138",
+      "matches": [
+        "issue-138-session-start"
+      ]
+    },
+    "issue-144": {
+      "token": "issue-144",
+      "matches": [
+        "issue-144-governance-v3"
+      ]
+    },
+    "issue-193": {
+      "token": "issue-193",
+      "matches": [
+        "issue-193-ci-context-design"
+      ]
+    },
+    "issue-196": {
+      "token": "issue-196",
+      "matches": [
+        "issue-196-ci-context-impl"
+      ]
+    },
+    "issue-201": {
+      "token": "issue-201",
+      "matches": [
+        "issue-201-memory-format"
+      ]
+    },
+    "issue-203": {
+      "token": "issue-203",
+      "matches": [
+        "issue-203-checkcontexts-fix"
+      ]
+    },
+    "issue-205": {
+      "token": "issue-205",
+      "matches": [
+        "issue-205-memory-format-lib"
+      ]
+    },
+    "issue-214": {
+      "token": "issue-214",
+      "matches": [
+        "issue-214-secret-scrub-idintegrity"
+      ]
+    },
+    "issue-217": {
+      "token": "issue-217",
+      "matches": [
+        "issue-217-engram-records-migration"
+      ]
+    },
+    "issue-219": {
+      "token": "issue-219",
+      "matches": [
+        "issue-219-migrate-v1"
+      ]
+    },
+    "issue-221": {
+      "token": "issue-221",
+      "matches": [
+        "issue-221-c2b1-machinery"
+      ]
+    },
+    "issue-222": {
+      "token": "issue-222",
+      "matches": [
+        "issue-222-c2b2-cutover"
+      ]
+    },
+    "issue-229": {
+      "token": "issue-229",
+      "matches": [
+        "issue-229-c4"
+      ]
+    },
+    "issue-231": {
+      "token": "issue-231",
+      "matches": [
+        "issue-231-a2"
+      ]
+    },
+    "issue-239": {
+      "token": "issue-239",
+      "matches": [
+        "issue-239-a3"
+      ]
+    },
+    "issue-244": {
+      "token": "issue-244",
+      "matches": [
+        "issue-244-a4"
+      ]
+    },
+    "issue-246": {
+      "token": "issue-246",
+      "matches": [
+        "issue-246-c3"
+      ]
+    },
+    "issue-250": {
+      "token": "issue-250",
+      "matches": [
+        "issue-250-b0"
+      ]
+    }
+  }
+}

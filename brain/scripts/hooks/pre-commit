@@ -1,0 +1,150 @@
+#!/usr/bin/env sh
+# pre-commit — block direct commits to main/master + refuse a task branch in the
+# main checkout + refuse a byte-identical .memory/records/ restage + repo:check.
+#
+# Hard checks (locally unambiguous — no false positives):
+#   0. Unborn-HEAD exemption from checks 1 and 2 (issue #1112 finding 4,
+#      maintainer ruling 2026-09-29).
+#   1. Block direct commit to main or master (PRs only).
+#   2. Refuse a task branch in the MAIN CHECKOUT (issue #788, #782 slice 2).
+#   3. staged-records-check.mjs (issue #701) — refuses a staged
+#      .memory/records/ file whose blob is byte-identical to a copy already
+#      on the upstream trunk. Placed BEFORE repo:check (design.md Decision 6):
+#      it is a fast, targeted refusal on the exact accident this ticket is
+#      about, and it degrades to a silent pass (never a block) when the
+#      upstream base cannot be checked.
+#   4. repo:check — validates references and prohibited patterns.
+#
+# No-node guard: exits 0 if node is not available.
+# Installed via core.hooksPath = brain/scripts/hooks.
+
+command -v node >/dev/null 2>&1 || exit 0
+
+# ── 0. No-commit-at-all exemption from checks 1 and 2 (issue #1112, finding 4) ─
+#
+# `env:init` sets core.hooksPath (bootstrap.sh §7) before the operator makes
+# the adoption commit, so checks 1 and 2 below are both live against the only
+# checkout that exists. Check 1 blocks whenever the default branch happens to
+# be literally named "main"/"master"; check 2 blocks EVERY commit from the
+# main checkout, unconditionally, regardless of branch. Maintainer ruling,
+# 2026-09-29, re-confirmed the same day with a corrected rationale (the
+# original one was wrong — see the note below): exempt the repository's
+# very first commit. In this order:
+#
+#  1. PRIMARY — check 2 (#782) exists so parallel work cannot collide in one
+#     checkout. A repository with NO commit at all has no branch anyone else
+#     is using and no history to share, so there is no parallel work to
+#     isolate — the exemption recognises that the rule has nothing to
+#     protect there yet. It applies to exactly one commit in a repository's
+#     life, announces itself (the line printed below), and stops applying as
+#     soon as any ref reaches a commit: see the closing note below.
+#  2. COST (ADR-0036) — `npx brain init` and `env:init` leave the adoption's
+#     files, `.env` and git config sitting in the MAIN checkout. Making that
+#     first commit from a separate (orphan) worktree instead would mean
+#     moving all of that there, or re-running the install itself there — on
+#     the single most fragile step, for someone brand new to brain.
+#  3. COMPATIBILITY — an orphan worktree (`git worktree add --orphan`) is
+#     the one construction that could otherwise isolate this commit even
+#     with zero commits so far, and it requires git >= 2.42.
+#
+# CORRECTED PREMISE, STATED SO IT IS NOT RE-INTRODUCED: an earlier version of
+# this comment claimed worktree isolation was "structurally impossible" here
+# because `git worktree add` needs a commit to exist. That claim is FALSE —
+# `git worktree add --orphan` works against a repository with zero commits
+# (git >= 2.42, verified on 2.53) — and the exemption does not rest on it;
+# see points 1-3 above for what it actually rests on.
+#
+# THE CONDITION IS "THE REPOSITORY HAS NO COMMIT AT ALL" — checked via
+# `git rev-list -n 1 --all` being empty (no commit reachable from ANY ref) —
+# never "the CURRENT HEAD is unborn" (`git rev-parse --verify HEAD` failing).
+# Those are NOT the same fact: `git checkout --orphan x` also makes the
+# current HEAD unborn, in a repository that already has real history on other
+# refs (e.g. `main`) — a HEAD-only check would re-open #782 on demand, letting
+# any commit in the main checkout dodge check 2 just by switching to a fresh
+# orphan branch first (cold-review finding, reproduced). `--all` still reaches
+# `main`'s commit in that case, so the condition below stays false and checks
+# 1/2 judge the orphan-branch commit exactly as they would any other.
+#
+# Silent, closed set: `-n 1` stops at the first hit (cheap even on a large
+# history) and no output is the only signal read. The exemption applies while
+# NO ref reaches any commit. It is NOT permanent: `git checkout --orphan x;
+# git branch -D main` leaves `git rev-list -n 1 --all` empty again, and the
+# exemption fires once more. Reaching that state in a repository with history
+# takes deliberately deleting every ref, which also leaves no shared history
+# for parallel work to collide on — which is why the rule still has nothing
+# to protect there.
+# The predicate lives in ONE place, shared with commit-msg (issue #1161).
+# Fail-closed: a missing helper means the exemption does not apply.
+brain_repo_has_no_commit() { return 1; }
+[ -f "$(dirname "$0")/no-commit-yet.sh" ] && . "$(dirname "$0")/no-commit-yet.sh"
+if brain_repo_has_no_commit; then
+  echo "✓ pre-commit: the repository has no commit yet — no parallel work exists to isolate; allowing it (issue #1112)."
+else
+
+# ── 1. Block direct commits to main/master ──────────────────────────────────
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+  echo ""
+  echo "✗ pre-commit: direct commits to '$branch' are not allowed."
+  echo "  Create a feature branch and submit a PR."
+  echo "  (bypass: git commit --no-verify)"
+  echo ""
+  exit 1
+fi
+
+# ── 2. Refuse a task branch in the MAIN CHECKOUT (#788, #782 slice 2) ───────
+#
+# `harness-contract.md` calls the isolated worktree load-bearing: "NEVER a
+# branch in the main checkout when parallel work is possible." That rule was
+# canonical, compiled into AGENTS.md, and enforced by nothing — an agent session
+# on 2026-08-27 created five such branches with the rule loaded the whole time.
+#
+# THE MEASUREMENT IS ONE PAIR OF REV-PARSES, and it is exact:
+#   main checkout    --git-dir = .git                      = --git-common-dir
+#   linked worktree  --git-dir = .git/worktrees/<name>    != --git-common-dir
+#
+# IT FIRES ALWAYS, ruled 2026-08-28, not only when linked worktrees exist. The
+# contract's "when parallel work is possible" could be read as exempting a repo
+# with none — but parallel work becomes possible the moment a second agent
+# starts, and a guard that switches itself off is one nobody can reason about.
+#
+# THE CONSEQUENCE, STATED RATHER THAN DISCOVERED: with check 1 above, the main
+# checkout now takes no commits at all — `main` by that check, everything else
+# by this one. That is what the doctrine says the main checkout is for, and it
+# is a lockout rather than a nudge, so it is said here and in the refusal.
+#
+# WHAT IT DOES NOT CLOSE. A hook is per-clone and `core.hooksPath` is local
+# config that `bootstrap.sh:298` sets, so a clone that never bootstraps has no
+# hooks. This makes the wrong thing inconvenient and visible; making it
+# unexpressible is #782's slice 3 — the orchestrator handing a worktree the way
+# `cold-boot.mjs` already does for the cold-review producer.
+git_dir=$(git rev-parse --git-dir 2>/dev/null)
+git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+if [ -n "$git_dir" ] && [ "$git_dir" = "$git_common_dir" ]; then
+  echo ""
+  echo "✗ pre-commit: '$branch' is a task branch and this is the MAIN CHECKOUT."
+  echo "  harness-contract.md: never a branch in the main checkout — while it is"
+  echo "  checked out here, no other agent can work in parallel."
+  echo ""
+  echo "  Start the task in its own worktree instead:"
+  echo "      npm run brain:ticket:start -- <id>"
+  echo ""
+  echo "  (bypass: git commit --no-verify)"
+  echo ""
+  exit 1
+fi
+
+fi
+
+repo_root=$(git rev-parse --show-toplevel)
+
+# ── 3. staged-records-check ─────────────────────────────────────────────────
+node "$repo_root/brain/scripts/memory/staged-records-check.mjs"
+staged_records_status=$?
+if [ "$staged_records_status" -ne 0 ]; then
+  exit $staged_records_status
+fi
+
+# ── 4. repo:check ──────────────────────────────────────────────────────────
+node "$repo_root/brain/scripts/check-refs.mjs"
+exit $?

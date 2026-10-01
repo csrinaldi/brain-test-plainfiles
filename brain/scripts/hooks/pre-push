@@ -1,0 +1,63 @@
+#!/usr/bin/env sh
+# pre-push — checkpoint feature working memory, then run repository checks.
+# Durable team records travel through the memory lane, never on a feature PR.
+#
+# Without node (CI or a minimal clone) this hook remains non-blocking.
+# A tooling/checkpoint failure is isolated; canonical-root and repo-check
+# failures remain actionable and block because they identify the push target.
+#
+# ── STREAM DISCIPLINE FOR HOOKS (issue #633) ────────────────────────────────
+#
+#   stdout is PROGRESS. stderr is SOMETHING A HUMAN NEEDS.
+#   A hook discards the first and NEVER the second.
+#
+# So `>/dev/null` is right on dispatcher progress and `2>&1` / `2>/dev/null`
+# are wrong on any `cli.mjs` invocation, without exception.
+
+command -v node >/dev/null 2>&1 || exit 0
+
+# Resolve the canonical root before invoking any node script.  An empty or
+# failed root is unsafe: refusing is preferable to running against the caller's
+# cwd (issue #890 threat matrix).
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || {
+  echo "pre-push: could not resolve repository root; refusing push" >&2
+  exit 1
+}
+if [ -z "$repo_root" ]; then
+  echo "pre-push: repository root is empty; refusing push" >&2
+  exit 1
+fi
+
+# Only checkpoint when an active change directory exists.  The backend resolves
+# the active feature (including resume.md disambiguation); no durable-record
+# share or dirty-.memory guard runs here.
+changes_dir="$repo_root/openspec/changes"
+if [ -d "$changes_dir" ] && find "$changes_dir" -mindepth 1 -maxdepth 1 -type d ! -name archive -print -quit 2>/dev/null | grep -q .; then
+  # Non-blocking by design: a failed checkpoint never stops a push. stderr is kept (#633).
+  # Exit 3/4 is the memory backend declaration refusal (#1165): the checkpoint was never
+  # attempted, so say that instead of letting it pass as a checkpoint that ran.
+  _cp_rc=0
+  node "$repo_root/brain/scripts/memory/cli.mjs" feature-checkpoint >/dev/null || _cp_rc=$?
+  if [ "$_cp_rc" -eq 3 ] || [ "$_cp_rc" -eq 4 ]; then
+    echo "pre-push: feature checkpoint skipped — memory backend not declared or invalid (npm run brain:config -- set memory.backend engram|plainfiles)" >&2
+  fi
+fi
+
+# Repository reference/prohibition checks remain a hard pre-push boundary.
+node "$repo_root/brain/scripts/check-refs.mjs" || exit 1
+
+# Diff-size is informational; the authoritative governance audit remains the
+# merge-time check.  Unknown config/base state skips the warning.
+base=$(git merge-base HEAD origin/main 2>/dev/null) || base=""
+if [ -n "$base" ]; then
+  budget=$(node "$repo_root/brain/scripts/vcs/governance-tiers.mjs" diff-budget 2>/dev/null) || budget=""
+  diff_lines=$(git diff --numstat "$base" HEAD | node "$repo_root/brain/scripts/vcs/diff-size-count.mjs" 2>/dev/null) || diff_lines=""
+  if [ -n "$diff_lines" ] && [ -n "$budget" ] && [ "$diff_lines" -gt "$budget" ] 2>/dev/null; then
+    echo ""
+    echo "⚠ pre-push: ~${diff_lines} changed lines (budget: ${budget})."
+    echo "  Consider splitting before opening a review (this push continues)."
+    echo ""
+  fi
+fi
+
+exit 0

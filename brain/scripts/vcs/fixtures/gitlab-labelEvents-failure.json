@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/issues/:iid/resource_label_events",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "Forced-failure case — hand-authored to exercise gitlab.mjs#labelEvents' catch-and-return-null path (matches gitlabApiFetch's thrown-on-!res.ok contract)."
+  },
+  "throws": true,
+  "status": 404
+}

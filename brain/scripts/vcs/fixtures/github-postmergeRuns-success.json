@@ -1,0 +1,19 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/{project}/actions/workflows/governance-postmerge.yml/runs?branch={ref}",
+    "date": "2026-08-06",
+    "derived": true,
+    "note": "Hand-authored from the documented GitHub Actions 'List workflow runs for a workflow' response shape (https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-workflow), trimmed to the fields realPostMergeCiProbe consumes (status, conclusion, id, updated_at, html_url). API-ordered newest-first: a single completed, successful terminal run — proves the find-first-completed-entry logic picks it up as lastRun."
+  },
+  "data": {
+    "workflow_runs": [
+      {
+        "id": 60001,
+        "status": "completed",
+        "conclusion": "success",
+        "updated_at": "2026-08-06T06:00:12Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/60001"
+      }
+    ]
+  }
+}

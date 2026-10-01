@@ -1,0 +1,127 @@
+#!/usr/bin/env sh
+# pre-receive — server-side hard gate for commit-message invariants.
+#
+# This is the bypass-proof server-side counterpart of brain/scripts/hooks/commit-msg.
+# Unlike the client-side commit-msg hook, this hook runs on the git SERVER and CANNOT
+# be skipped with --no-verify (which is a client-only flag that only suppresses local
+# hooks). It enforces the same conventional-commit format and ticket-reference
+# requirements for every commit in a pushed batch.
+#
+# Requirements: sh, git, grep — no Node.js or external tooling required.
+# Installed via: npm run brain:protect-server -- /path/to/repo.git
+#
+# Per-line stdin format (one line per ref being pushed):
+#   <oldrev> <newrev> <refname>
+#   - oldrev:  40-hex SHA, or 40 zeros for a newly-created ref
+#   - newrev:  40-hex SHA, or 40 zeros for a deleted ref
+#   - refname: e.g. refs/heads/main
+#
+# Checks mirrored from commit-msg:
+#   1. Conventional commit format: <type>[(<scope>)][!]: <description>
+#   2. Ticket ref (#N) — exempt for Merge, Revert, chore(release), chore(memory).
+
+ZEROS="0000000000000000000000000000000000000000"
+failed=0
+
+while IFS=' ' read -r oldrev newrev refname; do
+  # Skip branch/tag deletions (newrev is all zeros).
+  [ "$newrev" = "$ZEROS" ] && continue
+
+  # Determine the set of new commits to validate. A hard gate must fail CLOSED:
+  # if git rev-list errors (corrupt object DB, unknown SHA, OOM), reject the push
+  # rather than let an empty list silently accept unvalidated commits.
+  if [ "$oldrev" = "$ZEROS" ]; then
+    # New ref: list commits reachable from newrev that are not yet in any existing ref.
+    commits=$(git rev-list "$newrev" --not --all) || {
+      printf '✗ pre-receive: internal error listing commits for %s — rejecting push.\n' "$refname"
+      exit 1
+    }
+  else
+    # Existing ref: list commits added on top of the previous tip.
+    commits=$(git rev-list "$oldrev..$newrev") || {
+      printf '✗ pre-receive: internal error listing commits for %s — rejecting push.\n' "$refname"
+      exit 1
+    }
+  fi
+
+  for sha in $commits; do
+    msg=$(git log -1 --format=%B "$sha")
+    sha7=$(printf '%s' "$sha" | cut -c1-7)
+
+    # Skip empty messages.
+    [ -z "$msg" ] && continue
+
+    # Exemptions: Merge and Revert commits bypass both checks (same as commit-msg).
+    case "$msg" in
+      Merge\ *|Revert\ *) continue ;;
+    esac
+
+    # ── 1. Conventional commit format ────────────────────────────────────────
+    if ! printf '%s\n' "$msg" | grep -qE \
+      '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\([^)]+\))?(!)?: .+'; then
+      printf '\n'
+      printf '✗ pre-receive: %s — commit message must follow Conventional Commits.\n' "$sha7"
+      printf '  Message: %s\n' "$(printf '%s\n' "$msg" | head -n 1)"
+      printf '  Format:  <type>[(<scope>)]: <description>\n'
+      printf '  Types:   feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert\n'
+      failed=1
+      continue
+    fi
+
+    # ── 2. AI attribution (#671) ─────────────────────────────────────────────
+    # agent-authorities.md Tier 3 — never, even if explicitly asked. Checked
+    # BEFORE the chore(release)/chore(memory) exemption below, so no exemption
+    # from the ticket rule ever becomes an exemption from this one.
+    #
+    # This is the bypass-proof half: `--no-verify` is a client-only flag, so a
+    # commit that slipped past the local hook is still rejected here. That
+    # matters because `core.hooksPath` is per-clone and not committed — a fresh
+    # clone that never ran env:init has no client hook at all.
+    #
+    # BYTE-IDENTICAL to commit-msg's pattern, pinned by
+    # hooks.attribution-parity.test.mjs (#130, #340, #555).
+    # Platform-agnostic: a baked list always lags, and this file is installed
+    # into a BARE repo as a single self-contained copy — no sibling data file
+    # reaches the server and brain.config.json is not there to read. `git config`
+    # is the one channel that travels with the repository it governs:
+    #
+    #   git config brain.aiAgents 'claude|opencode|antigravity'
+    #
+    # Same key, same fallback, same expansion as commit-msg — pinned.
+    AI_AGENTS=$(git config --get brain.aiAgents 2>/dev/null)
+    [ -z "$AI_AGENTS" ] && AI_AGENTS='claude|copilot|chatgpt|gpt|gemini|cursor|devin|codex|aider|windsurf'
+    AI_ATTRIBUTION_RE="co-authored-by:[[:space:]]*($AI_AGENTS)|($AI_AGENTS)-session:|generated[[:space:]]+(with|by)[[:space:]]*\[($AI_AGENTS)|🤖"
+    if printf '%s\n' "$msg" | grep -qiE "$AI_ATTRIBUTION_RE"; then
+      printf '\n'
+      printf '✗ pre-receive: %s — AI attribution is prohibited in commits.\n' "$sha7"
+      printf '  agent-authorities.md Tier 3 — never, even if explicitly asked.\n'
+      printf '  A trailer is an unverifiable identity claim in permanent history, and a\n'
+      printf '  session URL is a dead link for every reader outside the machine that wrote it.\n'
+      failed=1
+      continue
+    fi
+
+    # ── 3. Ticket reference ───────────────────────────────────────────────────
+    # Machine-generated commits (release cuts and memory syncs) carry no ticket —
+    # exempt them from the ref requirement. Format is still enforced above.
+    case "$msg" in
+      chore\(release\)*|chore\(memory\)*) continue ;;
+    esac
+
+    if ! printf '%s\n' "$msg" | grep -qE '#[0-9]+'; then
+      printf '\n'
+      printf '✗ pre-receive: %s — commit message must reference a ticket (#N).\n' "$sha7"
+      printf '  Message: %s\n' "$(printf '%s\n' "$msg" | head -n 1)"
+      printf '  Example: feat(auth): add JWT validation (#42)\n'
+      failed=1
+    fi
+  done
+done
+
+if [ "$failed" -ne 0 ]; then
+  printf '\n'
+  printf 'Push rejected by brain'\''s pre-receive hard gate — fix the commit message(s) and re-push.\n'
+  exit 1
+fi
+
+exit 0

@@ -1,0 +1,15 @@
+# CODEOWNERS — optional rung-1 enhancement for L6 (design §6.2, REQ-L6-1).
+#
+# Where the platform + branch protection support required code-owner review, this
+# file upgrades L6's "no agent writes to brain/" Tier-2 constraint to
+# prevention-at-merge. It is an enhancement, not the enforcement: the evidence-based
+# `brain-writes-reviewed` detection job (design §6.1) is the primary L6 mechanism and
+# does not require CODEOWNERS or branch protection to detect self-approved brain
+# writes.
+#
+# Placeholder reviewer identity: @<human-reviewer-team> (Gap G7, tasks.md
+# micro-decisions). The operator fills in the real identity post-merge — shipping
+# with a placeholder is intentional and non-blocking; GitHub may show an "unknown
+# owner" annotation until it is replaced.
+/brain/core/**     @<human-reviewer-team>
+/brain/project/**  @<human-reviewer-team>

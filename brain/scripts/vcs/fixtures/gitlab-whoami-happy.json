@@ -1,0 +1,16 @@
+{
+  "_provenance": {
+    "endpoint": "GET /user (via glab api /user)",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "No reachable live `glab` session in this environment — the standing deferral already documented for every other gitlab-* fixture in this suite (record-fixtures.mjs's constraint). Hand-authored from the documented GitLab /user response shape, issue #385, M10 Phase 2 final Gap-A batch."
+  },
+  "data": {
+    "id": 42,
+    "username": "brain-bot",
+    "name": "Brain Bot",
+    "state": "active",
+    "avatar_url": "https://gitlab.example.test/uploads/-/system/user/avatar/42/avatar.png",
+    "web_url": "https://gitlab.example.test/brain-bot"
+  }
+}

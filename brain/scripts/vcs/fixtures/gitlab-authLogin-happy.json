@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "glab auth login --hostname gitlab.com --git-protocol https --stdin",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "Mutating verb (would overwrite the sandbox's real glab credentials) and no live glab session is reachable from this environment -- both reasons this is derived, not recorded. Hand-authored from glab's documented `auth login --stdin` contract: a valid token piped via stdin exits zero."
+  },
+  "status": 0,
+  "stdout": "✓ Logged in to gitlab.com as csrinaldi\n",
+  "stderr": ""
+}

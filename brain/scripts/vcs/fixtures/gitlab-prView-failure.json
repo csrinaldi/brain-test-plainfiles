@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests/:iid",
+    "date": "2026-07-11",
+    "derived": true,
+    "note": "Forced-failure case — hand-authored to exercise gitlab.mjs#prView's catch-and-return-null-shape path. Status corrected from 404 to 500 for issue #1086: this fixture is the GENERIC/unreadable failure case (must classify `absent: null`, an unresolved read, not a definitive negative) — 404 collides with classifyUncomputableCause's numeric not-found rule and would misclassify this as `absent: true`. See github-prView-notfound.json / gitlab-prView-notfound.json for the actual definitive-negative fixtures."
+  },
+  "throws": true,
+  "status": 500
+}

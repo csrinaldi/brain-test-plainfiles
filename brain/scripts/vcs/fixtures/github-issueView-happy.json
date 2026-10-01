@@ -1,0 +1,24 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/csrinaldi/brain/issues/334",
+    "date": "2026-07-26",
+    "recorded": true,
+    "note": "Trimmed to the fields github.mjs#issueView actually consumes (number, title, labels[].name, body, user.login) via a jq-equivalent projection of the real response — values are unmodified from the live API, only unused issue metadata is dropped to keep the fixture reviewable."
+  },
+  "data": {
+    "number": 334,
+    "title": "fix(cli): brain:ship hardcodes a 'kind:feature' label that does not exist — the golden-path ship verb cannot open a PR",
+    "labels": [
+      {
+        "name": "type:bug"
+      },
+      {
+        "name": "status:needs-review"
+      }
+    ],
+    "body": "## Symptom\n\n`npm run brain:ship` cannot open a PR in this repository. It passes every check and then dies at the label step:\n\n```\nbrain:check results:\n  [PASS] diffSize\n  [PASS] issueLink\n  [PASS] adrPresence\n  [PASS] memoryPresence\n  [PASS] npmTest\n  [PASS] repoCheck\nAll checks passed. Ready to brain:ship.\nbrain:ship: PR creation failed — could not add label: 'kind:feature' not found\n```\n\nNo PR is created and the branch is not pushed. The golden-path ship verb is unusable.\n\n## Root cause\n\n`brain/scripts/brain-ship.mjs:94` hardcodes the label:\n\n```js\nconst mrResult = await mrCreateFn({\n  title,\n  body,\n  head: branchName,\n  base,\n  labels: ['kind:feature'],\n});\n```\n\nTwo distinct defects in that one line.\n\n**1. Wrong label namespace.** brain's own convention is `type:*`. `gh label list` on this repo returns `type:bug`, `type:feature`, `type:chore`, `type:docs`, `type:refactor`, `type:breaking-change`. There is no `kind:*` label, and `.github/PULL_REQUEST_TEMPLATE.md:14` explicitly instructs contributors to \"add the matching `type:*` label\". So `brain:ship` fails 100% of the time against the label scheme brain itself defines and enforces.\n\n**2. Hardcoded to `feature` regardless of the issue.** Even with the namespace corrected, every PR would be labelled a feature. This slice was a bug fix (#332); the ship verb would have mislabelled it. `.github/PULL_REQUEST_TEMPLATE.md:71` requires \"exactly one `type:*` label\", and the governance CI enforces it, so a wrong label is not cosmetic.\n\n## Why the tests do not catch it\n\n`brain-ship.test.mjs:28` injects a stub:\n\n```js\nmrCreateFn: async ({ title, body, head, base, labels }) => ({ ... })\n```\n\nThe stub accepts any `labels` value and always succeeds. Nothing asserts the label against the repository's real label set, so the suite stays green while the verb is completely broken in production. This is the same failure mode as the one found in PR #331: a test that cannot fail on the thing that is actually wrong.\n\n## Impact\n\n- `brain:ship` is one of the golden-path verbs (`brain:start` / `brain:check` / `brain:save` / `brain:ship`). It is documented in `brain-ship.mjs:2` as \"Golden-path verb: verify checks then open the PR (REQ-S5-4)\" and it does not work on brain's own repository.\n- Any repo adopting brain hits this immediately unless it happens to define a `kind:feature` label.\n- It undermines the adoption story: the first time an operator runs the full loop end to end, the last step fails.\n\n## Candidate directions (for design, not prescribing)\n\n- Derive the label from the linked issue's own `type:*` label, which is already required to exist and be `status:approved` before a PR may be opened.\n- Failing that, infer from the branch prefix (`feature/` / `fix/` / `chore/` / `docs/`) that `brain:start` already generates.\n- Make the label set configurable in `brain.config.json` rather than hardcoded, so adopting repos with a different taxonomy are not blocked.\n- Add a test that asserts the label the verb actually sends, and consider a check that the configured labels exist on the remote before attempting creation, so the failure is caught early with an actionable message.\n- Separately: `titleFromBranch` (`brain-ship.mjs:41-47`) produces a de-hyphenated branch slug (`\"fix governance git seam execfilesync has\"`), not a conventional-commit title, while `.github/PULL_REQUEST_TEMPLATE.md:73` requires conventional commit format. Worth addressing in the same pass or splitting out.\n\n## Notes\n\n- Found while shipping #332. That PR (#333) had to be opened manually with `gh` and the correct `type:bug` label.\n- Related: #313 (v2 epic), #328 (stale-green gates). The green-tests-over-broken-verb pattern here is the same one #328 describes.\n",
+    "user": {
+      "login": "csrinaldi"
+    }
+  }
+}

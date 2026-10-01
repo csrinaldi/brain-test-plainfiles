@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/repository/commits/:sha/merge_requests",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment (same limitation as every other gitlab-*.json fixture, CP-A3b deferred). Hand-authored from the documented GitLab REST API v4 response shape (https://docs.gitlab.com/ee/api/commits.html#list-merge-requests-associated-with-a-commit): an array of merge-request objects, trimmed to the one field gitlab.mjs#commitPrs reads (`iid`)."
+  },
+  "data": [
+    { "iid": 991 }
+  ]
+}

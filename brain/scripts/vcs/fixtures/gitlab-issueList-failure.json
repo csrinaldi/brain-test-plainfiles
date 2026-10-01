@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/issues?state=opened&per_page=50",
+    "date": "2026-07-30",
+    "derived": true,
+    "note": "No live GitLab mirror is reachable from this environment (record-fixtures.mjs:27-34's standing constraint) — hand-authored to exercise runJson's non-zero-exit throw path (exec.mjs:31-32), since gitlab.mjs#issueList spawns glab via runJson rather than fetching over gitlabApiFetch. Both issueList call sites (tracker-board.mjs's safeList, project-status.mjs's wrapping try/catch) already absorb the throw — pinned as a documented, load-bearing divergence, not fixed here."
+  },
+  "throws": true,
+  "error": "glab: 404 Project Not Found"
+}

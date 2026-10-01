@@ -1,0 +1,12 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/merge_requests/:number/notes?order_by=created_at&sort=asc&per_page=100&page=1",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "Simulates a GitLab proxy or temporary API state returning 200 OK with a malformed (non-array) body on the notes endpoint — a plausible real-world scenario despite being undocumented. The prReviews function must treat this as a fetch failure (return null) per its all-or-nothing invariant, not fabricate an empty array."
+  },
+  "data": {
+    "error": "gateway error",
+    "message": "unexpected response format"
+  }
+}

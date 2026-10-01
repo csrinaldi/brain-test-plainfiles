@@ -1,0 +1,26 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/{project}/actions/workflows/governance-postmerge.yml/runs?branch={ref}",
+    "date": "2026-08-06",
+    "derived": true,
+    "note": "Hand-authored from the documented GitHub Actions 'List workflow runs for a workflow' response shape (https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-workflow), trimmed to the fields realPostMergeCiProbe consumes (status, conclusion, id, updated_at, html_url). API-ordered newest-first: a NON-TERMINAL run (status in_progress, conclusion null — the documented shape while a run has not finished) ahead of a completed successful one. This is the common live shape, not an exotic one: governance-postmerge.yml triggers on push to main, so any status read shortly after a merge sees the in-flight run first. The fixture exists to pin the find-first-COMPLETED filter — without it the probe reads runs[0], carries conclusion null into the evaluator, and reports uncomputable on a perfectly readable ledger."
+  },
+  "data": {
+    "workflow_runs": [
+      {
+        "id": 60003,
+        "status": "in_progress",
+        "conclusion": null,
+        "updated_at": "2026-08-06T06:04:41Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/60003"
+      },
+      {
+        "id": 60002,
+        "status": "completed",
+        "conclusion": "success",
+        "updated_at": "2026-08-06T06:00:12Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/60002"
+      }
+    ]
+  }
+}

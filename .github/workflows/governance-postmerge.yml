@@ -1,0 +1,786 @@
+# governance-postmerge.yml — L2 post-merge auto-revert (rung 3), D2 cursor model.
+#
+# Reuses brain/scripts/brain-audit.mjs UNCHANGED, run in the trusted post-merge
+# context (code already on main) — which is why contents: write is safe here
+# while the PR-time gate (governance.yml) stays read-only. Deliberately a
+# SEPARATE workflow from governance.yml (design.md §10-B, gap B): the read-only
+# PR gate must never gain write scope.
+#
+# D2 (issue #259) — the auto-revert EXECUTOR, cursor-windowed and fail-closed:
+#   • The audit window is the governance CURSOR range (cursor..HEAD), never the
+#     push payload's before..sha — so an offender that landed while an earlier
+#     run was pinned is never skipped (REQ-D2-1, the skip-over theorem).
+#   • The audit's NUMERIC exit code is authoritative: 0 → advance the cursor;
+#     1 → revert exactly the parsed [FAIL-SHA] offenders; 2 → loud infra issue,
+#     never revert, never advance; anything else → normalized to 2 (REQ-D2-6).
+#   • Reverts consume the ONE tested parser (parse-failures.mjs, REQ-D2-5) — the
+#     class-filtered, deduped, resurrection-suppressed [FAIL-SHA] signal, never
+#     github.sha blindly.
+
+name: governance-postmerge
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *'
+  # On demand (#518). Without this, a halted cursor can only be re-run by pushing
+  # to main or waiting for 06:00 UTC — and the halt is precisely the state where
+  # nobody wants to push to main to find out whether it recovered. #462 was a
+  # 12-day rung-3 outage discovered by hand; the recovery path for the next one
+  # should not require a commit.
+  #
+  # No `inputs:` on purpose. The window comes from the CURSOR, never from a
+  # caller-supplied range (REQ-D2-1, the skip-over theorem): an operator-chosen
+  # range could silently skip an offender that landed while an earlier run was
+  # pinned, which is the one thing the cursor model exists to prevent.
+  workflow_dispatch:
+
+# trusted: runs post-merge on main.
+#   contents: write        — push auto-revert branches and CAS the governance cursor
+#   pull-requests: write   — open the auto-revert PR
+#   actions: read         — `gh run list --workflow`, the bootstrap's prior-run evidence (#1162).
+#       An explicit block sets every omitted scope to none, so without it a PRIVATE
+#       repository reads `unknown` and alarms forever. Read only, never write.
+#   issues: write          — REQUIRED by every LOUD path, not a nicety (#462):
+#       • `gh label create` (governance:cursor-missing / :cursor-unknown /
+#         :audit-uncomputable / :revert-blocked) is the labels REST endpoint,
+#         which is scoped to issues
+#       • `gh issue create` / `gh issue comment` / `gh issue list` — the halt,
+#         uncomputable and revert-blocked alarms
+#       • `gh pr create --label size:exception` — labelling a PR goes through
+#         the ISSUES labels endpoint, so the revert path needs it too
+#     Without it the gate still fails closed but cannot TELL anyone, which is
+#     how a 12-day rung-3 outage stayed invisible.
+permissions: { contents: write, pull-requests: write, issues: write, actions: read }
+
+# Defense-in-depth against overlapping runs (the CAS in cursor.mjs advanceCursor
+# is the actual guarantee; this only narrows the window). REQ-D2-12 / §5.3.
+concurrency: { group: governance-postmerge, cancel-in-progress: false }
+
+jobs:
+  audit-and-revert:
+    name: audit-and-revert
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 is BINDING (REQ-D2-1/-11): resolveWindow/advanceCursor run
+      # LOCAL `git merge-base --is-ancestor` against the cursor sha, which starves
+      # on a shallow clone once the cursor is >1 commit behind HEAD — a legitimate
+      # window then dies with a false "not an ancestor". Full history, always.
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - id: gitidentity
+        name: Configure a git identity for the runner
+        run: |
+          set -euo pipefail
+          # A bare runner has no git identity — `git revert` / `cursor.mjs accept`
+          # fail without author/committer info configured.
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - id: window
+        name: Resolve the audit window from the governance cursor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # `cursor.mjs bootstrap` reads prior-run evidence through the VCS port
+          # (#1162): the port's credential, this file's fixed provider, and the
+          # default branch the evidence is filtered by.
+          VCS_TOKEN: ${{ github.token }}
+          VCS_PROVIDER: github
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          # EMPTY on `schedule` runs (no repository object in that payload): cursor.mjs
+          # then resolves the default branch from the remote's own HEAD.
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          # cursor.mjs window prints one of:
+          #   PRESENT <base> <head>   (exit 0) — audit base..head
+          #   ABSENT                  (exit 2) — the cursor ref does not exist
+          #   UNKNOWN <reason>        (exit 2) — the cursor could not be computed
+          # Capture BOTH output and code; never let a non-zero code abort silently.
+          set +e  # surfaced: the exit code is captured on the next line and branched on; any non-PRESENT state files an alarm and halts
+          win_out="$(node brain/scripts/governance/postmerge/cursor.mjs window)"
+          win_code=$?
+          set -e
+
+          state="$(printf '%s\n' "$win_out" | head -n1 | cut -d' ' -f1)"
+
+          # #1162 — a NEW repository has no cursor and never had one: that is a
+          # bootstrap state, not an alarm. `cursor.mjs bootstrap` creates the
+          # cursor (a remote CAS, AT the adoption commit: a gate is not
+          # authoritative over the commit that installs it, and the first window
+          # audits everything after it) ONLY
+          # when no prior run of this workflow ever succeeded. A cursor that
+          # once existed and is gone (a prior success exists), or evidence that
+          # cannot be read, falls through to the alarm below — never a guess.
+          boot_reason=""
+          if [ "$state" = "ABSENT" ]; then
+            set +e  # surfaced: the bootstrap exit code is captured and branched on; anything but a clean bootstrap keeps the ABSENT alarm
+            boot_out="$(node brain/scripts/governance/postmerge/cursor.mjs bootstrap .github/workflows/governance-postmerge.yml --branch "$DEFAULT_BRANCH")"
+            boot_code=$?
+            set -e
+            echo "$boot_out"
+            if [ "$boot_code" -eq 0 ]; then
+              set +e  # surfaced: re-resolving the window; the same capture-and-branch contract applies
+              win_out="$(node brain/scripts/governance/postmerge/cursor.mjs window)"
+              win_code=$?
+              set -e
+              state="$(printf '%s\n' "$win_out" | head -n1 | cut -d' ' -f1)"
+            else
+              boot_reason="$(printf '%s\n' "$boot_out" | head -n1)"
+            fi
+          fi
+
+          if [ "$win_code" -eq 0 ] && [ "$state" = "PRESENT" ]; then
+            base="$(printf '%s\n' "$win_out" | head -n1 | cut -d' ' -f2)"
+            head="$(printf '%s\n' "$win_out" | head -n1 | cut -d' ' -f3)"
+            echo "range=${base}..${head}" >> "$GITHUB_OUTPUT"
+            echo "resolved audit window: ${base}..${head}"
+            exit 0
+          fi
+
+          # ABSENT / UNKNOWN / any non-PRESENT output → loud issue, exit 2, NEVER
+          # audit an inferred range, NEVER revert, NEVER auto-create the cursor.
+          if [ "$state" = "ABSENT" ]; then
+            label="governance:cursor-missing"
+            {
+              echo "The governance cursor ref does not exist. Post-merge auditing is halted until it is initialized."
+              echo ""
+              if [ -n "$boot_reason" ]; then
+                echo "Automatic initialization was NOT performed: ${boot_reason}"
+                echo ""
+              fi
+              echo "Initialize it (human action) AT THE ADOPTION COMMIT — the first commit that added this workflow — never at the root: a cursor before the adoption makes the audit judge (and auto-revert) the very commit that installed the gate. The window then audits everything after it:"
+              echo '```'
+              echo "git update-ref refs/governance/audit-cursor \$(git log --first-parent --diff-filter=A --format=%H --reverse -- .github/workflows/governance-postmerge.yml | head -n1)"
+              echo "git push origin refs/governance/audit-cursor"
+              echo '```'
+            } > "$RUNNER_TEMP/body.md"
+          else
+            label="governance:cursor-unknown"
+            reason="$(printf '%s\n' "$win_out" | head -n1 | cut -d' ' -f2-)"
+            {
+              echo "The governance cursor could not be computed — auditing is halted (fail-closed, never a guess)."
+              echo ""
+              echo "Reason: ${reason:-unspecified}"
+              echo ""
+              echo "No init command is offered: bootstrapping the cursor on a guess is refused. A human must diagnose."
+            } > "$RUNNER_TEMP/body.md"
+          fi
+
+          gh label create "$label" --color B60205 --description "governance postmerge halt" --force
+          if [ -n "$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty')" ]; then
+            num="$(gh issue list --label "$label" --state open --json number --jq '.[0].number')"
+            gh issue comment "$num" --body-file "$RUNNER_TEMP/body.md"
+          else
+            gh issue create --title "governance: postmerge halted — ${label#governance:}" \
+              --label "$label" --body-file "$RUNNER_TEMP/body.md"
+          fi
+          # REQ-TS-5: every alarm path RECORDS that it fired, so the always()
+          # terminal step can tell "red and already reported" from "red and silent".
+          echo "alarm=${label}" >> "$GITHUB_OUTPUT"
+          exit 2
+
+      - id: audit
+        name: Run brain-audit over the cursor window
+        # The credential is load-bearing, not a nicety (#467): issueLink reads PR
+        # bodies and diffSize reads labels through the port. Unauthenticated, both
+        # report "this gate failed" instead of "I could not evaluate" (the
+        # evidence-reader-empty-on-failure class) — measured 20/20 [FAIL] with
+        # zero [FAIL-SHA] over d71a8a5..e834f1d, which drives every non-empty
+        # window into the #466 deadlock.
+        #
+        # It is VCS_TOKEN, not GH_TOKEN (#479). `${{ github.token }}` stays — it is
+        # Actions' ephemeral per-run credential, and demanding every GitHub consumer
+        # configure a secret instead would be strictly worse. What changes is the
+        # NAME the audit receives it under: brain declares one provider-neutral
+        # credential (ADR-0007), `getVcs()` resolves it, and this file — which only
+        # ever runs on GitHub — stays the single place that knows `github.token`
+        # exists. Under GH_TOKEN the same audit authenticated one way here and
+        # another way under GitLab's `VCS_TOKEN`, with nothing asserting the two
+        # stayed in step.
+        env:
+          VCS_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          range="${{ steps.window.outputs.range }}"
+
+          # The audit's NUMERIC exit code is authoritative — capture it, never a
+          # boolean outcome (continue-on-error flattens 1 and 2). A [FAIL-SHA]-like
+          # string in stdout is NEVER pattern-matched to decide a revert.
+          set +e  # surfaced: the numeric audit exit code is captured, normalised, and decides revert versus alarm
+          audit_out="$(node brain/scripts/brain-audit.mjs "$range")"
+          code=$?
+          set -e
+
+          # Normalize any unmapped/kill code to 2 (uncomputable) BEFORE branching.
+          case "$code" in
+            0|1|2) ;;
+            *) code=2 ;;
+          esac
+
+          printf '%s\n' "$audit_out"
+          {
+            echo "code=${code}"
+            echo 'stdout<<AUDIT_EOF'
+            printf '%s\n' "$audit_out"
+            echo 'AUDIT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - id: advance
+        name: Advance the cursor on a clean audit (code 0)
+        if: steps.audit.outputs.code == '0'
+        run: |
+          set -euo pipefail
+          range="${{ steps.window.outputs.range }}"
+          base="${range%%..*}"
+          head="${range##*..}"
+          node brain/scripts/governance/postmerge/cursor.mjs accept "$base" "$head" \
+            --reason "post-merge audit clean over ${range}"
+          echo "cursor advanced to ${head}"
+
+      - id: resolve-audit
+        name: Close the alarms this clean audit resolves (#1188)
+        # An alarm the workflow filed closes itself once a later run passes the
+        # condition that filed it. Only a CLEAN audit (code 0) gets here, and only
+        # after the cursor advanced: a still-failing run closes nothing. The alarm
+        # issue used to outlive the recovery it reported (#4 in the 1.10.0 demo
+        # repos). `alarm.mjs resolve` never fails the job — a close that cannot
+        # happen is a printed warning. No new permission: closing an issue is
+        # covered by the `issues: write` held for filing.
+        if: steps.audit.outputs.code == '0' && steps.advance.outcome == 'success'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+          VCS_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node brain/scripts/governance/postmerge/alarm.mjs resolve "$RUN_URL" audit
+
+      - id: revert
+        name: Revert the parsed offenders (code 1)
+        if: steps.audit.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_STDOUT: ${{ steps.audit.outputs.stdout }}
+        run: |
+          set -euo pipefail
+          head_sha="$(git rev-parse HEAD)"
+
+          # Parse offenders through the ONE tested parser (REQ-D2-5). The parser's
+          # stdout goes through a plain command substitution so its failure trips
+          # set -e; the mapfile then reads that captured value. A parser crash
+          # aborts the job — never a silently empty offender list.
+          parsed="$(printf '%s' "$AUDIT_STDOUT" | node brain/scripts/governance/postmerge/parse-failures.mjs)"
+          offenders=()
+          while IFS= read -r line; do
+            [ -n "$line" ] && offenders+=("$line")
+          done <<< "$parsed"
+
+          # ── The unrevertible halt (REQ-TS-4, #466) ────────────────────────
+          # This branch used to call the state "incoherent" and exit 2 — and it
+          # was WRONG. brain-audit.mjs's own contract (§15.5, its crossCheckExit
+          # docblock) says: "A [FAIL-SHA] count of 0 on exit 1 is LEGITIMATE".
+          # It happens whenever every surviving violation is a non-auto-revertible
+          # class (issueLink/memoryPresence), or a tree-keyed failure is suppressed
+          # from nomination because reverting it would RESURRECT a payload absent
+          # at HEAD. This branch encoded the pre-§15.5 invariant that the rewrite
+          # explicitly REPLACED, in a file the rewrite did not touch.
+          #
+          # Worse, exiting 2 HERE does not reach the alarm: that step is gated on
+          # `steps.audit.outputs.code == '2'` — the AUDIT step's output, which is
+          # '1'. Red, nothing reverted, no alarm, cursor frozen (#466, run
+          # 31094912872). So this state gets a real handler and a real alarm.
+          #
+          # It is a HALT, not an accept: the cursor stays pinned and a human
+          # decides. Advancing here would perform `cursor.mjs accept` — a gate
+          # the design deliberately made a human keystroke WITH a written reason
+          # (REQ-D2-10a) — with no reason and no human.
+          if [ "${#offenders[@]}" -eq 0 ]; then
+            label="governance:audit-unrevertible"
+            {
+              echo "The post-merge audit FAILED (exit 1) but nothing is safely auto-revertible — NO revert and NO cursor advance was performed (REQ-TS-4)."
+              echo ""
+              echo "This is a legitimate audit state, not a malfunction: every surviving violation is either a"
+              echo "non-auto-revertible class (\`issueLink\` / \`memoryPresence\`) or a tree-keyed failure whose revert"
+              echo "would resurrect a payload absent at HEAD (design §15.5)."
+              echo ""
+              echo "**A human must resolve it.** For each merge below, either fix forward, revert it manually, or"
+              echo "accept it explicitly with a written reason:"
+              echo ""
+              echo '```'
+              echo "node brain/scripts/governance/postmerge/cursor.mjs accept <sha> --reason \"<why this is accepted>\""
+              echo '```'
+              echo ""
+              echo "The cursor stays PINNED until then, so this window is re-audited on every push and daily."
+              echo ""
+              echo "Audit output:"
+              echo '```'
+              printf '%s\n' "$AUDIT_STDOUT"
+              echo '```'
+              echo ""
+              echo "Part of #259."
+            } > "$RUNNER_TEMP/unrevertible.md"
+            node brain/scripts/governance/postmerge/alarm.mjs "$label" \
+              "governance: postmerge audit failed with nothing revertible" \
+              "$RUNNER_TEMP/unrevertible.md"
+            echo "alarm=${label}" >> "$GITHUB_OUTPUT"
+            echo "audit failed with no auto-revertible offender; alarm filed, cursor stays pinned."
+            exit 1
+          fi
+
+          failed=()
+          for sha in "${offenders[@]}"; do
+            (
+              set -euo pipefail
+              br="auto-revert/${sha}"
+
+              # PR-keyed idempotency (REQ-D2-13): a PR for this offender — open,
+              # merged, OR closed-without-merge — is never duplicated or reopened.
+              if [ -n "$(gh pr list --head "$br" --state all --json number --jq '.[0].number // empty')" ]; then
+                echo "auto-revert PR for ${sha} already exists — skipping."
+                exit 0
+              fi
+
+              # Parents-only count (REQ-D2-4): `git show -s --format=%P` lists ONLY
+              # the parent shas. The rejected alternative counted "parent " lines
+              # in the raw object, which also matches commit-MESSAGE lines that
+              # happen to begin with that word — a false merge classification.
+              nparents="$(git show -s --format=%P "$sha" | wc -w)"
+              git checkout --detach "$head_sha"
+              if [ "$nparents" -ge 2 ]; then
+                git revert -m 1 --no-edit "$sha"
+              else
+                git revert --no-edit "$sha"
+              fi
+
+              git switch -c "$br"
+              git push origin "$br"
+
+              body="$RUNNER_TEMP/revert-${sha}.md"
+              {
+                echo "Automated revert — post-merge brain:audit reported ${sha} as an un-exempted tree-keyed offender live at HEAD."
+                echo ""
+                echo "Part of #259."
+              } > "$body"
+              gh pr create --base main --head "$br" \
+                --title "revert: governance audit failed on ${sha:0:7}" \
+                --body-file "$body" --label size:exception
+            ) || {
+              # Per-offender failure boundary: abort any half-applied revert, reset
+              # to a clean detached HEAD, clean up an orphan branch so it can never
+              # permanently suppress a retry, record the offender, and CONTINUE.
+              git revert --abort 2>/dev/null || true  # swallow-ok: cleanup after a failed per-offender revert; the offender is recorded in `failed` and alarmed below
+              git checkout --detach "$head_sha" 2>/dev/null || true  # swallow-ok: cleanup after a failed per-offender revert; the offender is recorded in `failed` and alarmed below
+              git push origin --delete "auto-revert/${sha}" 2>/dev/null || true  # swallow-ok: cleanup after a failed per-offender revert; the offender is recorded in `failed` and alarmed below
+              failed+=("$sha")
+            }
+          done
+
+          if [ "${#failed[@]}" -gt 0 ]; then
+            label="governance:revert-blocked"
+            {
+              echo "The post-merge auto-revert could not revert the following offenders (conflict or push/PR failure):"
+              echo ""
+              for s in "${failed[@]}"; do
+                echo "- \`${s}\` — manual: \`git revert -m 1 --no-edit ${s}\` (or without -m 1 for a non-merge commit)"
+              done
+              echo ""
+              echo "The cursor stays PINNED until these are resolved. Part of #259."
+            } > "$RUNNER_TEMP/revert-blocked.md"
+            gh label create "$label" --color B60205 --description "auto-revert blocked" --force
+            if [ -n "$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty')" ]; then
+              num="$(gh issue list --label "$label" --state open --json number --jq '.[0].number')"
+              gh issue comment "$num" --body-file "$RUNNER_TEMP/revert-blocked.md"
+            else
+              gh issue create --title "governance: auto-revert blocked" \
+                --label "$label" --body-file "$RUNNER_TEMP/revert-blocked.md"
+            fi
+            echo "alarm=${label}" >> "$GITHUB_OUTPUT"   # REQ-TS-5
+            echo "reverts blocked for ${#failed[@]} offender(s); cursor stays pinned."
+            exit 1
+          fi
+
+          echo "reverted ${#offenders[@]} offender(s); cursor stays pinned until the revert PR(s) merge."
+
+      - id: uncomputable
+        name: Raise a loud infra issue on an uncomputable audit (code 2)
+        if: steps.audit.outputs.code == '2'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_STDOUT: ${{ steps.audit.outputs.stdout }}
+        run: |
+          set -euo pipefail
+          label="governance:audit-uncomputable"
+          {
+            echo "The post-merge audit exited uncomputable (code 2) over the cursor window — NO revert and NO cursor advance was performed (fail-closed, REQ-D2-6/-12)."
+            echo ""
+            echo "Audit output:"
+            echo '```'
+            printf '%s\n' "$AUDIT_STDOUT"
+            echo '```'
+            echo ""
+            echo "Part of #259."
+          } > "$RUNNER_TEMP/uncomputable.md"
+          gh label create "$label" --color B60205 --description "postmerge audit uncomputable" --force
+          if [ -n "$(gh issue list --label "$label" --state open --json number --jq '.[0].number // empty')" ]; then
+            num="$(gh issue list --label "$label" --state open --json number --jq '.[0].number')"
+            gh issue comment "$num" --body-file "$RUNNER_TEMP/uncomputable.md"
+          else
+            gh issue create --title "governance: postmerge audit uncomputable" \
+              --label "$label" --body-file "$RUNNER_TEMP/uncomputable.md"
+          fi
+          echo "alarm=${label}" >> "$GITHUB_OUTPUT"   # REQ-TS-5
+          exit 2
+
+      - id: archive-app-secrets
+        name: Check whether the sweep's GitHub App credentials are configured (#1106)
+        # Same gate as `sweep` itself — no reason to mint a token on a run
+        # that will not reach the sweep at all.
+        if: steps.audit.outputs.code == '0' && steps.advance.outcome == 'success'
+        # `secrets.*` is not read directly in a step `if:` anywhere in this
+        # file — it is mapped into THIS step's env first, and every later
+        # step reads this step's OUTPUT instead. A repo with neither secret
+        # set must never FAIL this step; it only reports what it found.
+        env:
+          APP_ID: ${{ secrets.BRAIN_SWEEP_APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.BRAIN_SWEEP_APP_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${APP_ID:-}" ] && [ -n "${APP_PRIVATE_KEY:-}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - id: archive-app-token
+        name: Mint a GitHub App installation token for the sweep PR (#1106)
+        # Skipped — never FAILED — when the two secrets are absent: a missing
+        # secret must not fail this step, because it never runs at all.
+        # `sweep` reads `steps.archive-app-token.outputs.token`, which is
+        # empty either way this step did not produce one (unconfigured, or a
+        # real mint failure while configured — the sweep step distinguishes
+        # the two via `archive-app-secrets`'s output).
+        if: steps.archive-app-secrets.outputs.configured == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.BRAIN_SWEEP_APP_ID }}
+          private-key: ${{ secrets.BRAIN_SWEEP_APP_PRIVATE_KEY }}
+
+      - id: sweep
+        name: Sweep closed changes into the archive (clean audit only)
+        # Positioned as the LAST functional step, after `advance`/`uncomputable`
+        # and immediately before the `always()` terminal assertion (design D5).
+        # That places it after `advance`, which is what C1 requires, and after
+        # every handler, so even its one exit-1 path can never skip a step that
+        # would otherwise have run. `steps.advance.outcome == 'success'` is
+        # belt-and-braces — a failing `advance` already aborts the job before
+        # this step runs — but it makes C1 readable in the YAML instead of
+        # inferable from step ordering.
+        if: steps.audit.outputs.code == '0' && steps.advance.outcome == 'success'
+        env:
+          VCS_TOKEN: ${{ github.token }}
+          # The alarm path (gh label/issue create/comment, via alarm.mjs)
+          # ALWAYS uses GITHUB_TOKEN — that works today and must still fire if
+          # the App token is what broke (#1106). Only the PR-opening path
+          # below is ever authenticated with the minted App token instead.
+          GH_TOKEN: ${{ github.token }}
+          # #1106: the App identity for BOTH the push and opening the PR — a
+          # PR authored/opened by GITHUB_TOKEN either cannot be created (this
+          # repo refuses it) or triggers no workflow run (governance.yml would
+          # never run on it, so it could never merge) even where creation is
+          # allowed. BRAIN_SWEEP_TOKEN is the name sweep.mjs's `--open-pr`
+          # mode itself reads (#1106 rework) — opening the PR goes through the
+          # VCS port (getVcs().mrCreate), never the `gh` CLI's PR-creation
+          # subcommand in this bash.
+          APP_CONFIGURED: ${{ steps.archive-app-secrets.outputs.configured }}
+          BRAIN_SWEEP_TOKEN: ${{ steps.archive-app-token.outputs.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+
+          today="$(date -u +%F)"
+          br="auto-archive/${today}"
+
+          # Unmerged backlog (design D6): ONE open auto-archive/* PR at a time.
+          # Two open sweep PRs would both append to the same
+          # openspec/specs/<capability>/spec.md, and whichever merges second
+          # conflicts or double-appends — serialising to one open PR keeps the
+          # append monotone.
+          open_count="$(gh pr list --state open --json headRefName --jq '[.[] | select(.headRefName | startswith("auto-archive/"))] | length')"
+          if [ "${open_count:-0}" -gt 0 ]; then
+            echo "an auto-archive/* PR is already open — skipping this run (backlog cap)."
+            exit 0
+          fi
+
+          # Same-day idempotency, mirroring REQ-D2-13 verbatim: a PR for today's
+          # branch in ANY state (open, merged, or closed-without-merge) is never
+          # duplicated or reopened.
+          if [ -n "$(gh pr list --head "$br" --state all --json number --jq '.[0].number // empty')" ]; then
+            echo "auto-archive PR for ${today} already exists — skipping."
+            exit 0
+          fi
+
+          git switch -c "$br"
+
+          # The orchestrator computes and renders; this bash does git/gh —
+          # exactly the node/bash boundary the revert step already draws.
+          # Never gates advance/revert: it writes no cursor, and its script is
+          # total (exits 0 on every path but a killed runner — design D5).
+          # stderr is merged in (2>&1): on the fail-closed exit-3 path (design
+          # D3) the real cause is logged via console.error, not console.log —
+          # capturing stdout alone left the alarm's "Sweep output" block empty
+          # on every genuine failure, not just the #1113 crash case (#1113).
+          set +e  # surfaced: the sweep exit code is captured on the next line; non-zero files the shared alarm
+          sweep_out="$(node brain/scripts/governance/postmerge/sweep.mjs --apply --report "$RUNNER_TEMP/sweep-body.md" 2>&1)"
+          sweep_code=$?
+          set -e
+
+          printf '%s\n' "$sweep_out"
+
+          # Fail-closed (design D3): an incomplete selection or an archive
+          # write failure means NOTHING was archived. File the shared alarm
+          # and stay green — a housekeeping bug must never redden this job
+          # (design D5's "why the sweep must not redden the job").
+          if [ "$sweep_code" -ne 0 ]; then
+            label="governance:archive-sweep-failed"
+            {
+              echo "The post-merge archive sweep could not complete — the selector could not read every issue state, an archive write itself failed, or the sweep exited on an unexpected error (the output below names which). NOTHING was archived this run (design D3, fail-closed)."
+              echo ""
+              echo "Sweep output:"
+              echo '```'
+              printf '%s\n' "$sweep_out"
+              echo '```'
+              echo ""
+              echo "The prior cursor advance is unaffected — the sweep never gates it. Part of #557."
+            } > "$RUNNER_TEMP/sweep-failed.md"
+            node brain/scripts/governance/postmerge/alarm.mjs "$label" \
+              "governance: archive sweep failed" \
+              "$RUNNER_TEMP/sweep-failed.md"
+            echo "alarm=${label}" >> "$GITHUB_OUTPUT"
+            echo "archive sweep failed; alarm filed, no PR opened."
+            exit 0
+          fi
+
+          archived="$(printf '%s\n' "$sweep_out" | grep '^SWEEP ' | sed -E 's/^SWEEP archived=([0-9]+).*/\1/')"
+
+          if [ "${archived:-0}" -eq 0 ]; then
+            echo "nothing eligible to sweep this run."
+            exit 0
+          fi
+
+          # ── #1106: resolve which identity pushes (and, downstream, opens
+          # the PR) ───────────────────────────────────────────────────────
+          # GITHUB_TOKEN CAN push (contents: write) but this repository does
+          # not allow it to create pull requests — and even where that setting
+          # is on, a GITHUB_TOKEN-authored PR triggers no workflow run, so
+          # governance.yml would never run on it and it could never merge.
+          # Opening the PR is therefore NEVER done with GITHUB_TOKEN, below or
+          # anywhere else in this step — it goes through the VCS port instead
+          # (`sweep.mjs --open-pr`, #1106 rework), never the `gh` CLI's own
+          # PR-creation subcommand. When the App is unavailable — the two
+          # secrets are absent, or the mint itself failed — the branch is
+          # still archived and pushed, and a human opens the PR by hand from
+          # the alarm's compare link.
+          app_available=0
+          unavailable_reason=""
+          if [ "${APP_CONFIGURED:-false}" = "true" ]; then
+            if [ -n "${BRAIN_SWEEP_TOKEN:-}" ]; then
+              app_available=1
+            else
+              unavailable_reason="the GitHub App token mint failed — this is a real failure, not a missing-secret degrade"
+            fi
+          else
+            unavailable_reason="BRAIN_SWEEP_APP_ID / BRAIN_SWEEP_APP_PRIVATE_KEY are not configured on this repository"
+          fi
+
+          default_branch="${DEFAULT_BRANCH:-main}"
+          compare_url="https://github.com/${GITHUB_REPOSITORY:-}/compare/${default_branch}...${br}"
+
+          # ── Commit + push, as its own failure boundary ─────────────────────
+          # The push authenticates as the App when available (not just the PR
+          # open below), per the decided fix — the PR's author and events
+          # belong to the App identity throughout. The checkout-persisted
+          # GITHUB_TOKEN credential header is stripped first: a push carrying
+          # BOTH headers is rejected by GitHub (duplicate Authorization).
+          push_ok=0
+          if [ "$app_available" -eq 1 ]; then
+            git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true  # swallow-ok: strips a credential header the push must not carry; if it was never set there is nothing to strip, and a bad push is alarmed below
+            auth_header="AUTHORIZATION: basic $(printf '%s' "x-access-token:${BRAIN_SWEEP_TOKEN}" | base64 -w0)"
+            if git add -A \
+              && git commit -m "chore(openspec): archive ${archived} closed changes" \
+              && git -c http.extraheader="$auth_header" push origin "$br"
+            then
+              push_ok=1
+            fi
+          else
+            if git add -A \
+              && git commit -m "chore(openspec): archive ${archived} closed changes" \
+              && git push origin "$br"
+            then
+              push_ok=1
+            fi
+          fi
+
+          if [ "$push_ok" -ne 1 ]; then
+            git push origin --delete "$br" 2>/dev/null || true  # swallow-ok: best-effort orphan-branch cleanup on a path that already files an alarm ("where possible")
+            label="governance:archive-sweep-failed"
+            {
+              echo "The post-merge archive sweep archived ${archived} folder(s) locally, but committing or pushing ${br} failed."
+              echo ""
+              echo "Any orphaned remote branch has been deleted where possible. Nothing was left half-pushed."
+              echo ""
+              echo "Part of #557."
+            } > "$RUNNER_TEMP/sweep-push-failed.md"
+            node brain/scripts/governance/postmerge/alarm.mjs "$label" \
+              "governance: archive sweep commit/push failed" \
+              "$RUNNER_TEMP/sweep-push-failed.md"
+            echo "alarm=${label}" >> "$GITHUB_OUTPUT"
+            echo "commit/push failed; orphan branch cleanup attempted, alarm filed."
+            exit 0
+          fi
+
+          # ── Open the PR, through the VCS port (#1106 rework) ───────────────
+          # `sweep.mjs --open-pr` is the ONLY place this workflow opens a PR —
+          # never the `gh` CLI's own PR-creation subcommand here. It decides
+          # skip-vs-open from
+          # BRAIN_SWEEP_TOKEN's presence alone (empty either way the App was
+          # unavailable); the WHY (unconfigured vs mint-failed) stays in this
+          # bash, for the alarm text only. `--base` is the repository's actual
+          # default branch, never a hardcoded `main` (also #1106).
+          set +e  # surfaced: the PR exit code is captured on the next line; 0, 2 and any other each branch to an outcome or an alarm
+          pr_out="$(node brain/scripts/governance/postmerge/sweep.mjs --open-pr \
+            --head "$br" --base "$default_branch" --archived "$archived" \
+            --report "$RUNNER_TEMP/sweep-body.md")"
+          pr_code=$?
+          set -e
+          printf '%s\n' "$pr_out"
+
+          if [ "$pr_code" -eq 0 ]; then
+            echo "opened auto-archive PR for ${archived} folder(s)."
+          elif [ "$pr_code" -eq 2 ]; then
+            # Skipped: no usable App token (unconfigured, or the mint
+            # failed). The branch is left in place (NOT deleted) — a human
+            # needs it to open the PR by hand from the compare link.
+            label="governance:archive-sweep-failed"
+            {
+              echo "The post-merge archive sweep archived ${archived} folder(s) and pushed ${br}, but could not open its pull request: ${unavailable_reason}."
+              echo ""
+              echo "The branch was left in place — open the PR by hand:"
+              echo ""
+              echo "${compare_url}"
+              echo ""
+              echo "To let the sweep open this PR itself, configure a GitHub App (Contents: read/write, Pull requests: read/write, this repository only) and set the \`BRAIN_SWEEP_APP_ID\` and \`BRAIN_SWEEP_APP_PRIVATE_KEY\` repository secrets."
+              echo ""
+              echo "Part of #557 / #1106."
+            } > "$RUNNER_TEMP/sweep-no-app.md"
+            node brain/scripts/governance/postmerge/alarm.mjs "$label" \
+              "governance: archive sweep could not open its PR" \
+              "$RUNNER_TEMP/sweep-no-app.md"
+            echo "alarm=${label}" >> "$GITHUB_OUTPUT"
+            echo "archived and pushed ${br}; no App token available (${unavailable_reason}); alarm filed, branch kept for manual PR."
+          else
+            # A real mrCreate failure (a bad token, a rejected request) — "as
+            # today": cleaned up like any other push/PR failure, never left
+            # for a human who was never told to expect it.
+            git push origin --delete "$br" 2>/dev/null || true  # swallow-ok: best-effort orphan-branch cleanup on a path that already files an alarm ("where possible")
+            label="governance:archive-sweep-failed"
+            {
+              echo "The post-merge archive sweep archived ${archived} folder(s) and pushed ${br}, but opening its pull request failed:"
+              echo ""
+              echo '```'
+              printf '%s\n' "$pr_out"
+              echo '```'
+              echo ""
+              echo "Any orphaned remote branch has been deleted where possible. Nothing was left half-pushed."
+              echo ""
+              echo "Part of #557."
+            } > "$RUNNER_TEMP/sweep-push-failed.md"
+            node brain/scripts/governance/postmerge/alarm.mjs "$label" \
+              "governance: archive sweep commit/push/PR failed" \
+              "$RUNNER_TEMP/sweep-push-failed.md"
+            echo "alarm=${label}" >> "$GITHUB_OUTPUT"
+            echo "PR creation failed; orphan branch cleanup attempted, alarm filed."
+          fi
+
+      - id: resolve-sweep
+        name: Close the archive-sweep alarm this clean sweep resolves (#1188)
+        if: steps.sweep.outcome == 'success'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GH_TOKEN: ${{ github.token }}
+          VCS_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node brain/scripts/governance/postmerge/alarm.mjs resolve "$RUN_URL" sweep
+
+      - id: terminal
+        name: Terminal-state assertion — no terminal state may be both red and silent
+        if: always()
+        # REQ-TS-5 (#466) — THE BACKSTOP, and the load-bearing half of the fix.
+        #
+        # #466 was not "one missing branch". The alarm was gated on an
+        # ENUMERATION of audit exit codes, and a state INSIDE code 1 was missed,
+        # so the job went red in total silence. Adding a branch for that one
+        # state would leave the next unenumerated state exactly as silent.
+        #
+        # So the invariant is asserted over the JOB OUTCOME instead: if this job
+        # is failing and no step recorded an alarm, file one here. This holds for
+        # states that do not exist yet — including any added after this change.
+        #
+        # Values arrive via env:, never ${{ }}-spliced into run: (the security
+        # precedent this workflow already sets for AUDIT_STDOUT).
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_CODE: ${{ steps.audit.outputs.code }}
+          JOB_STATUS: ${{ job.status }}
+          ALARM_WINDOW: ${{ steps.window.outputs.alarm }}
+          ALARM_REVERT: ${{ steps.revert.outputs.alarm }}
+          ALARM_UNCOMPUTABLE: ${{ steps.uncomputable.outputs.alarm }}
+          ALARM_SWEEP: ${{ steps.sweep.outputs.alarm }}
+        run: |
+          set -euo pipefail
+          code="${AUDIT_CODE:-}"
+
+          # If the audit step itself was killed and wrote no output, code is empty:
+          # that is an uncomputable terminal state — fail the job loudly rather
+          # than let a killed audit pass as a clean run.
+          mapped=1
+          case "$code" in
+            0|1|2) echo "terminal audit code: ${code}" ;;
+            *) echo "audit produced no mapped terminal code ('${code}') — uncomputable."; mapped=0 ;;
+          esac
+
+          filed="${ALARM_WINDOW:-}${ALARM_REVERT:-}${ALARM_UNCOMPUTABLE:-}${ALARM_SWEEP:-}"
+          if [ "$JOB_STATUS" = "success" ] && [ "$mapped" -eq 1 ]; then
+            echo "job is green and the audit code is mapped — nothing to report."
+            exit 0
+          fi
+
+          if [ -n "$filed" ]; then
+            echo "job is red and an alarm was already filed (${filed}) — the invariant holds."
+            [ "$mapped" -eq 1 ] || exit 1
+            exit 1
+          fi
+
+          # RED AND SILENT — the #466 signature. File the backstop alarm.
+          label="governance:postmerge-unreported"
+          {
+            echo "The post-merge governance job failed and **no step filed an alarm** — the state this backstop exists to catch (#466, REQ-TS-5)."
+            echo ""
+            echo "Job status: \`${JOB_STATUS}\`"
+            echo "Audit exit code: \`${code:-<none — the audit step produced no output>}\`"
+            echo ""
+            echo "This means the job reached a terminal state with no handler. The cursor has NOT advanced."
+            echo "Read the job log, then either fix the underlying failure or add an explicit handler for this state."
+            echo ""
+            echo "Part of #259."
+          } > "$RUNNER_TEMP/unreported.md"
+          node brain/scripts/governance/postmerge/alarm.mjs "$label" \
+            "governance: postmerge job failed with no alarm filed" \
+            "$RUNNER_TEMP/unreported.md"
+          echo "backstop alarm filed: ${label}"
+          exit 1

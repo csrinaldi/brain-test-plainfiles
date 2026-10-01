@@ -1,0 +1,152 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/{project}/actions/workflows/governance-postmerge.yml/runs?branch={ref}",
+    "date": "2026-08-06",
+    "recorded": true,
+    "note": "Recorded live via `gh api repos/csrinaldi/brain/actions/workflows/governance-postmerge.yml/runs?branch=main&per_page=100`, filtered to updated_at in [2026-07-24T00:00:00Z, 2026-08-05T23:59:59Z] (62 matching runs total, all conclusion:failure across the window), trimmed to the fields realPostMergeCiProbe consumes (id, status, conclusion, updated_at, html_url) and to the most recent 20 entries (2026-08-03T19:21:49Z through 2026-08-05T18:31:13Z) matching production's per_page=20 request. The last success in the ledger before this window was 2026-07-24T08:02:41Z (run 30077513769, outside this fixture) \u2014 this fixture proves the FIRST (most recent) completed entry in the window is still conclusion:failure, so replaying it through the real probe + evalRung3 must report rung 3 inactive via row E6 (conclusion !== success), independent of the clock."
+  },
+  "data": {
+    "workflow_runs": [
+      {
+        "id": 31035091085,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-05T18:31:13Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/31035091085"
+      },
+      {
+        "id": 31026902315,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-05T16:47:12Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/31026902315"
+      },
+      {
+        "id": 30987988260,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-05T08:11:25Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30987988260"
+      },
+      {
+        "id": 30962144380,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-05T00:05:17Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30962144380"
+      },
+      {
+        "id": 30961989308,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-05T00:02:39Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30961989308"
+      },
+      {
+        "id": 30961695326,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T23:57:17Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30961695326"
+      },
+      {
+        "id": 30961563893,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T23:54:47Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30961563893"
+      },
+      {
+        "id": 30950097372,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T20:56:08Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30950097372"
+      },
+      {
+        "id": 30949768222,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T20:51:51Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30949768222"
+      },
+      {
+        "id": 30919480911,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T14:32:43Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30919480911"
+      },
+      {
+        "id": 30919001100,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T14:27:21Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30919001100"
+      },
+      {
+        "id": 30915870189,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T13:51:15Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30915870189"
+      },
+      {
+        "id": 30902379385,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T10:51:48Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30902379385"
+      },
+      {
+        "id": 30890981944,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T08:12:51Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30890981944"
+      },
+      {
+        "id": 30869774034,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T01:46:40Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30869774034"
+      },
+      {
+        "id": 30868655214,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T01:24:46Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30868655214"
+      },
+      {
+        "id": 30868509756,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-04T01:21:58Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30868509756"
+      },
+      {
+        "id": 30853586296,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-03T21:11:53Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30853586296"
+      },
+      {
+        "id": 30848526725,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-03T20:04:13Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30848526725"
+      },
+      {
+        "id": 30845413199,
+        "status": "completed",
+        "conclusion": "failure",
+        "updated_at": "2026-08-03T19:21:49Z",
+        "html_url": "https://github.com/csrinaldi/brain/actions/runs/30845413199"
+      }
+    ]
+  }
+}

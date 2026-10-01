@@ -1,0 +1,22 @@
+# Union-merge for the brain-owned durable record log (ADR-0017, REQ-MF-3,
+# issue #214/C1b). This uses git's BUILT-IN `union`
+# merge driver — no per-clone `git config` registration required.
+#
+# NO LONGER LOAD-BEARING (issue #677). A merge driver — built-in or not — is a
+# LOCAL git mechanism, and the merge that lands work in this repository is the
+# forge's merge button, which does not apply it. So the strategy the durable log
+# leaned on was absent at exactly the moment it was needed: the first
+# memory-capturing PR merged clean and every subsequent one conflicted, on the
+# one file where a hand-resolution drops a record silently.
+#
+# `.memory/records/` now holds ONE RECORD PER FILE (`<yyyy-mm>-<id>.jsonl`), so
+# two different records are two different paths and there is nothing to union.
+# Measured driver-free on the same two records and the same base: one month file
+# → CONFLICT; one file each → clean, both records present.
+#
+# The line stays because where the driver DOES run it still turns the one
+# residual case — the same `id` written with divergent bytes (ADR-0017
+# Amendment 1) — into a two-line file the reindex deduplicates and reports,
+# instead of a conflict. It is now a convenience, not the mechanism the format
+# depends on. Nothing here may be cited as making the log conflict-free again.
+/.memory/records/*.jsonl merge=union

@@ -1,0 +1,11 @@
+{
+  "_provenance": {
+    "endpoint": "gh api --paginate repos/csrinaldi/brain/commits/d4cb7f8.../pulls",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "Issue #1086's real regression shape: the `d4cb7f8` merge on main carries subject `(#978)`, where 978 is an issue, and the real containing pull request is 991 (`commits/d4cb7f8/pulls`, per the proposal's own investigation). No live call was made for THIS fixture (task 2.1's single permitted live call was read-only against `prView`, not this write-adjacent listing endpoint) — hand-authored from the documented GitHub REST response shape (https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit): an array of pull-request objects, trimmed to the one field github.mjs#commitPrs reads (`number`)."
+  },
+  "data": [
+    { "number": 991 }
+  ]
+}

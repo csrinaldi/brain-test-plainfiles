@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/issues/:number",
+    "date": "2026-07-26",
+    "derived": true,
+    "note": "A forced-failure response cannot be recorded from a real API call — hand-authored to exercise github.mjs#issueView's not-ok-exit → throw path (A5: issueView throws on failure, unlike prView's null-shape)."
+  },
+  "throws": true,
+  "error": "HTTP 404: Not Found (https://api.github.com/repos/x/y/issues/9999)"
+}

@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET repos/:project/pulls/:number/reviews",
+    "date": "2026-07-31",
+    "derived": true,
+    "note": "A forced non-zero exit cannot be recorded from a successful API call — hand-authored to exercise runJson's non-zero-exit throw path (exec.mjs:31-32), which github.mjs#prReviews catches and normalizes to null. `null` (uncomputable) must never collapse to a fabricated `[]`: the L6 brain-writes-reviewed gate distinguishes 'nobody approved' from 'could not fetch the reviews', and cold-boot's priorVerdicts load does the same for the verdict thread."
+  },
+  "throws": true,
+  "error": "HTTP 500: Internal Server Error (https://api.github.com/repos/x/y/pulls/1/reviews)"
+}

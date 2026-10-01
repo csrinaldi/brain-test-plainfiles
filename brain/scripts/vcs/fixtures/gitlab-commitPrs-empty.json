@@ -1,0 +1,9 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/repository/commits/:sha/merge_requests",
+    "date": "2026-09-19",
+    "derived": true,
+    "note": "Hand-authored: a commit with no associated merge request returns a definitively empty array — [], never null (that is the failure fixture's job)."
+  },
+  "data": []
+}

@@ -1,0 +1,10 @@
+{
+  "_provenance": {
+    "endpoint": "GET /projects/:id/issues/:iid",
+    "date": "2026-07-26",
+    "derived": true,
+    "note": "Forced-failure case — hand-authored to exercise gitlab.mjs#issueView's catch-free throw path. gitlabApiFetch throws on a non-ok response (see gitlab-api.mjs); issueView does not catch it (A5: issueView throws, unlike prView which catches and returns the null-shape)."
+  },
+  "throws": true,
+  "status": 404
+}
